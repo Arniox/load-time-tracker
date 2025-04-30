@@ -8,40 +8,39 @@ function pruneOldLogs(logs) {
 
 // 1) On navigation start, stamp the timestamp for live counting
 chrome.webNavigation.onBeforeNavigate.addListener(details => {
-    if (details.frameId !== 0) return;
+    if (details.frameId !== 0) return; // Ignore subframes
     const domain = new URL(details.url).hostname;
 
     chrome.storage.local.get(
         { tracked: [], currentLoads: {} },
         data => {
-            // Only track if the domain is already being tracked (not first time)
-            if (!data.tracked.includes(domain)) return;
-            data.currentLoads[domain] = Date.now();
-            chrome.storage.local.set({ currentLoads: data.currentLoads });
+            if (!data.tracked.includes(domain)) return; // Only track if the domain is being tracked
+
+            const currentLoads = { ...data.currentLoads };
+            if (!currentLoads[domain]) {
+                currentLoads[domain] = {}; // Initialize as an object for tab-specific tracking
+            }
+            currentLoads[domain][details.tabId] = Date.now(); // Store timestamp per tab ID
+            chrome.storage.local.set({ currentLoads });
         }
     );
 });
 
 // 2) On navigation complete, compute and persist loadTime + timestamp
 chrome.webNavigation.onCompleted.addListener(details => {
-    if (details.frameId !== 0) return;
+    if (details.frameId !== 0) return; // Ignore subframes
     const domain = new URL(details.url).hostname;
 
-    // Retrieve everything we need in one call
     chrome.storage.local.get(
         { tracked: [], currentLoads: {}, logs: [] },
         data => {
             const { tracked, currentLoads, logs } = data;
-            if (!tracked.includes(domain)) {
-                // not tracking this site
-                return;
-            }
+            if (!tracked.includes(domain)) return; // Only track if the domain is being tracked
 
-            // If there's no start time, this might be the first load after adding the site
-            // In that case, we don't want to track this load
-            if (!currentLoads[domain]) {
-                return;
-            }
+            const domainLoads = currentLoads[domain];
+            if (!domainLoads || !domainLoads[details.tabId]) return; // No start time for this tab
+
+            const startTime = domainLoads[details.tabId];
 
             // Attempt high-precision timing via the Performance API
             chrome.scripting.executeScript({
@@ -55,15 +54,15 @@ chrome.webNavigation.onCompleted.addListener(details => {
 
                 // Fallback: use our own timestamp if Performance API returned null
                 if (loadTime == null) {
-                    const start = currentLoads[domain];
-                    loadTime = typeof start === 'number'
-                        ? Date.now() - start
-                        : null;
+                    loadTime = Date.now() - startTime;
                 }
 
-                // Clear the in-flight entry
-                delete data.currentLoads[domain];
-                chrome.storage.local.set({ currentLoads: data.currentLoads });
+                // Remove the tab-specific entry
+                delete domainLoads[details.tabId];
+                if (Object.keys(domainLoads).length === 0) {
+                    delete currentLoads[domain]; // Clean up if no tabs are left for this domain
+                }
+                chrome.storage.local.set({ currentLoads });
 
                 // Only log if we actually got a number
                 if (typeof loadTime === 'number' && !isNaN(loadTime)) {
@@ -82,13 +81,13 @@ chrome.webNavigation.onCompleted.addListener(details => {
             }).catch(() => {
                 // In the unlikely event scripting.executeScript fails,
                 // fall back to our own timestamp diff:
-                const start = currentLoads[domain];
-                const loadTime = typeof start === 'number'
-                    ? (Date.now() - start)
-                    : null;
+                const loadTime = Date.now() - startTime;
 
-                delete data.currentLoads[domain];
-                chrome.storage.local.set({ currentLoads: data.currentLoads });
+                delete domainLoads[details.tabId];
+                if (Object.keys(domainLoads).length === 0) {
+                    delete currentLoads[domain];
+                }
+                chrome.storage.local.set({ currentLoads });
 
                 if (typeof loadTime === 'number' && !isNaN(loadTime)) {
                     const pruned = pruneOldLogs(logs);
