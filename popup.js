@@ -1,10 +1,9 @@
 // popup.js
 const siteList = document.getElementById('siteList');
 const addBtn = document.getElementById('addBtn');
-
 let running = true;
 
-// 1. Format ms → ms, s, m, or h with your thresholds
+// Format a millisecond total into ms, s, m, or h
 function formatDuration(ms) {
     if (typeof ms !== 'number' || isNaN(ms)) return '0ms';
     if (ms < 1000) return `${ms}ms`;
@@ -17,45 +16,55 @@ function formatDuration(ms) {
     return `${Math.round(h)}h`;
 }
 
-// 2. Read storage and rebuild the list
 function updateUI() {
-    chrome.storage.local.get(['tracked', 'logs', 'icons'], items => {
+    chrome.storage.local.get(['tracked', 'logs', 'icons', 'currentLoads'], items => {
         const tracked = items.tracked || [];
         const logs = items.logs || [];
         const icons = items.icons || {};
+        const currentLoads = items.currentLoads || {};
         const now = Date.now();
 
         siteList.innerHTML = '';
 
         tracked.forEach(domain => {
-            // Gather only this domain's records
-            const records = logs.filter(r => r.domain === domain);
+            // get past logs
+            const recs = logs.filter(r => r.domain === domain);
 
-            // Compute totals
+            // time windows
             const windows = {
                 h: 60 * 60 * 1000,
                 d: 24 * 60 * 60 * 1000,
                 w: 7 * 24 * 60 * 60 * 1000,
                 m: 30 * 24 * 60 * 60 * 1000
             };
+
+            // sum logs + in-flight
             const totals = {};
             for (const [k, span] of Object.entries(windows)) {
-                const sum = records
+                let sum = recs
                     .filter(r => now - r.timestamp <= span)
-                    .reduce((acc, r) => acc + (r.loadTime || 0), 0);
+                    .reduce((a, r) => a + (r.loadTime || 0), 0);
+
+                // if there’s an in-flight start and it’s within this window
+                const start = currentLoads[domain];
+                if (typeof start === 'number' && (now - start) <= span) {
+                    sum += (now - start);
+                }
                 totals[k] = sum;
             }
-            const statsText = [
+
+            // stats line
+            const stats = [
                 `H ${formatDuration(totals.h)}`,
                 `D ${formatDuration(totals.d)}`,
                 `W ${formatDuration(totals.w)}`,
                 `M ${formatDuration(totals.m)}`
             ].join(' | ');
 
-            // Build the <li>
+            // build list item
             const li = document.createElement('li');
 
-            // Favicon fallback chain
+            // favicon with fallbacks
             const img = document.createElement('img');
             img.className = 'favicon';
             let step = 0;
@@ -68,34 +77,34 @@ function updateUI() {
             ];
             img.onerror = () => {
                 step++;
-                if (step < fallbacks.length && fallbacks[step]) {
-                    img.src = fallbacks[step];
-                }
+                if (fallbacks[step]) img.src = fallbacks[step];
             };
-            // Kick off first valid src
             img.src = fallbacks.find(src => !!src) || '';
 
-            // Text block
+            // text block
             const info = document.createElement('div');
             info.className = 'info';
-            const domSpan = document.createElement('span');
-            domSpan.className = 'domain';
-            domSpan.textContent = domain;
-            const statSpan = document.createElement('span');
-            statSpan.className = 'stats';
-            statSpan.textContent = statsText;
-            info.append(domSpan, statSpan);
+            info.innerHTML = `
+        <span class="domain">${domain}</span>
+        <span class="stats">${stats}</span>
+      `;
 
-            // Remove button
+            // remove button: clears tracked, logs & currentLoads
             const rm = document.createElement('button');
             rm.className = 'removeBtn';
             rm.textContent = '×';
             rm.title = 'Stop tracking';
             rm.addEventListener('click', () => {
-                chrome.storage.local.get(['tracked', 'logs'], data => {
-                    const newTracked = (data.tracked || []).filter(d => d !== domain);
-                    const newLogs = (data.logs || []).filter(r => r.domain !== domain);
-                    chrome.storage.local.set({ tracked: newTracked, logs: newLogs }, updateUI);
+                chrome.storage.local.get(['tracked', 'logs', 'currentLoads'], data => {
+                    const nt = (data.tracked || []).filter(d => d !== domain);
+                    const nl = (data.logs || []).filter(r => r.domain !== domain);
+                    const nc = Object.assign({}, data.currentLoads || {});
+                    delete nc[domain];
+                    chrome.storage.local.set({
+                        tracked: nt,
+                        logs: nl,
+                        currentLoads: nc
+                    }, updateUI);
                 });
             });
 
@@ -105,31 +114,40 @@ function updateUI() {
     });
 }
 
-// 3. Live loop
+// live animation loop
 function loop() {
     if (!running) return;
     updateUI();
     requestAnimationFrame(loop);
 }
+
+// start & stop
 document.addEventListener('DOMContentLoaded', () => loop());
 window.addEventListener('unload', () => { running = false; });
 
-// 4. Add-button
+// “+” button: adds to tracked & primes a zero‐entry
 addBtn.addEventListener('click', () => {
     const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
     chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
         if (!tabs[0]?.url) return;
         const domain = new URL(tabs[0].url).hostname;
-        chrome.storage.local.get(['tracked', 'logs'], data => {
-            const tracked = data.tracked || [];
-            const logs = data.logs || [];
-            if (!tracked.includes(domain)) {
-                tracked.push(domain);
-                logs.push({ domain, timestamp: Date.now(), loadTime: 0 });
+        chrome.storage.local.get(['tracked', 'logs', 'currentLoads'], data => {
+            const tr = data.tracked || [];
+            const lg = data.logs || [];
+            const cl = data.currentLoads || {};
+
+            if (!tr.includes(domain)) {
+                tr.push(domain);
+                cl[domain] = Date.now();            // start counting immediately
+                lg.push({ domain, timestamp: Date.now(), loadTime: 0 });
             }
-            // prune old
-            const pruned = logs.filter(r => r.timestamp >= cutoff);
-            chrome.storage.local.set({ tracked, logs: pruned }, updateUI);
+
+            const prunedLogs = lg.filter(r => r.timestamp >= cutoff);
+            chrome.storage.local.set({
+                tracked: tr,
+                logs: prunedLogs,
+                currentLoads: cl
+            }, updateUI);
         });
     });
 });
