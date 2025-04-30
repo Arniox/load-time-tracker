@@ -5,7 +5,7 @@ const addBtn = document.getElementById('addBtn');
 
 let running = true;
 
-// Format ms into ms/s/m/h per your rules
+// duration formatter
 function formatDuration(ms) {
     if (ms < 1000) return `${ms}ms`;
     const s = ms / 1000;
@@ -17,21 +17,19 @@ function formatDuration(ms) {
     return `${Math.round(h)}h`;
 }
 
-// Draw once
+// draw UI
 async function draw() {
-    const { logs = [] } = await chrome.storage.local.get('logs');
+    const { tracked = [], logs = [] } = await chrome.storage.local.get(['tracked', 'logs']);
     const now = Date.now();
-
-    // Group logs by domain
-    const byDomain = logs.reduce((acc, r) => {
-        (acc[r.domain] ||= []).push(r);
-        return acc;
-    }, {});
 
     siteList.innerHTML = '';
 
-    for (const [domain, records] of Object.entries(byDomain)) {
-        // compute sums
+    // Show every tracked domain, even if no logs yet
+    for (const domain of tracked) {
+        // filter its logs
+        const records = logs.filter(r => r.domain === domain);
+
+        // compute totals
         const windows = {
             h: 60 * 60 * 1000,
             d: 24 * 60 * 60 * 1000,
@@ -42,11 +40,16 @@ async function draw() {
             Object.entries(windows).map(([k, span]) => {
                 const sum = records
                     .filter(r => now - r.timestamp <= span)
-                    .reduce((sum, r) => sum + r.loadTime, 0);
+                    .reduce((a, r) => a + r.loadTime, 0);
                 return [k, sum];
             })
         );
-        const stats = `H ${formatDuration(totals.h)} | D ${formatDuration(totals.d)} | W ${formatDuration(totals.w)} | M ${formatDuration(totals.m)}`;
+        const stats = [
+            `H ${formatDuration(totals.h)}`,
+            `D ${formatDuration(totals.d)}`,
+            `W ${formatDuration(totals.w)}`,
+            `M ${formatDuration(totals.m)}`
+        ].join(' | ');
 
         // build LI
         const li = document.createElement('li');
@@ -69,24 +72,25 @@ async function draw() {
         };
         Promise.resolve(fallbacks[step]()).then(src => img.src = src);
 
-        // info
+        // text info
         const info = document.createElement('div');
         info.className = 'info';
         info.innerHTML = `
-      <span class="domain">${domain}</span>
-      <span class="stats">${stats}</span>
-    `;
+            <span class="domain">${domain}</span>
+            <span class="stats">${stats}</span>`;
 
-        // remove
+        // remove button
         const rm = document.createElement('button');
         rm.className = 'removeBtn';
         rm.textContent = '×';
         rm.title = 'Stop tracking';
-        rm.addEventListener('click', () => {
-            chrome.storage.local.get({ logs: [] }, ({ logs }) => {
-                const keep = logs.filter(r => r.domain !== domain);
-                chrome.storage.local.set({ logs: keep });
-            });
+        rm.addEventListener('click', async () => {
+            const { tracked = [], logs = [] } = await chrome.storage.local.get(['tracked', 'logs']);
+            const newTracked = tracked.filter(d => d !== domain);
+            const newLogs = logs.filter(r => r.domain !== domain);
+            await chrome.storage.local.set({ tracked: newTracked, logs: newLogs });
+            // immediate UI update
+            draw();
         });
 
         li.append(img, info, rm);
@@ -94,32 +98,34 @@ async function draw() {
     }
 }
 
-// animation loop
+// animation loop for live updates
 function loop() {
     if (!running) return;
     draw();
     requestAnimationFrame(loop);
 }
 
-// start the loop when the popup loads
 document.addEventListener('DOMContentLoaded', () => {
     loop();
 });
 
-// stop the loop if the popup unloads (cleanup)
+// stop loop on unload
 window.addEventListener('unload', () => {
     running = false;
 });
 
-// “+” button unchanged
+// add current site
 addBtn.addEventListener('click', async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     const domain = new URL(tab.url).hostname;
     const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
 
-    chrome.storage.local.get({ logs: [] }, ({ logs }) => {
+    const { tracked = [], logs = [] } = await chrome.storage.local.get(['tracked', 'logs']);
+    if (!tracked.includes(domain)) {
+        tracked.push(domain);
         logs.push({ domain, timestamp: Date.now(), loadTime: 0 });
+        // prune old logs
         const pruned = logs.filter(r => r.timestamp >= cutoff);
-        chrome.storage.local.set({ logs: pruned });
-    });
+        await chrome.storage.local.set({ tracked, logs: pruned });
+    }
 });
