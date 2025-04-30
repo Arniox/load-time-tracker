@@ -22,6 +22,10 @@ chrome.webNavigation.onBeforeNavigate.addListener(details => {
             }
             currentLoads[domain][details.tabId] = Date.now(); // Store timestamp per tab ID
 
+            // Start the badge counter
+            chrome.action.setBadgeBackgroundColor({ color: '#007bff' }); // Blue pill color
+            chrome.action.setBadgeText({ text: '...' }); // Placeholder while loading
+
             // Atomically update currentLoads
             chrome.storage.local.set({ currentLoads });
         }
