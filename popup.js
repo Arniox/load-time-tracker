@@ -9,7 +9,7 @@ let running = true;
 //
 function formatDuration(ms) {
     if (typeof ms !== 'number' || isNaN(ms)) return '0ms';
-    if (ms < 1000) return `${ms}ms`;
+    if (ms < 1000) return `${Math.round(ms)}ms`; // Round ms to the nearest integer
     const s = ms / 1000;
     if (ms < 10000) return `${s.toFixed(2)}s`;
     if (ms < 60000) return `${Math.round(s)}s`;
