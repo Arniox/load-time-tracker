@@ -1,10 +1,14 @@
 /* container */
 .container {
+    position: relative;
+    /* Allows child elements to be positioned absolutely */
     width: 350px;
     overflow: hidden;
     padding: 12px;
     font-family: Arial, sans-serif;
     box-sizing: border-box;
+    overflow: hidden;
+    /* Prevent scrollbar from affecting layout */
 }
 
 /* header with title + add button */
@@ -59,11 +63,43 @@
 /* list styling */
 .site-list {
     list-style: none;
-    overflow: hidden;
     margin: 0;
     padding: 0;
     max-height: 300px;
     overflow-y: auto;
+    position: absolute;
+    /* Position the site-list absolutely */
+    top: 0;
+    right: 0;
+    left: 0;
+    /* Ensure it stretches to the left edge */
+    scrollbar-width: thin;
+    /* For Firefox: makes the scrollbar thin */
+    scrollbar-color: #bbb transparent;
+    /* For Firefox: scrollbar color */
+}
+
+/* For WebKit browsers (Chrome, Edge, Safari) */
+.site-list::-webkit-scrollbar {
+    width: 6px;
+    /* Slim scrollbar width */
+}
+
+.site-list::-webkit-scrollbar-track {
+    background: transparent;
+    /* Transparent track */
+}
+
+.site-list::-webkit-scrollbar-thumb {
+    background-color: #bbb;
+    /* Scrollbar thumb color */
+    border-radius: 3px;
+    /* Rounded edges for the scrollbar thumb */
+}
+
+.site-list::-webkit-scrollbar-thumb:hover {
+    background-color: #999;
+    /* Darker color on hover */
 }
 
 .site-list li {
@@ -108,7 +144,7 @@
 }
 
 .secondary-stats {
-    font-size: 0.8em;
+    font-size: 0.85em;
     color: #777;
     margin-top: 4px;
     display: block;

@@ -286,8 +286,9 @@ function updateStats() {
                 const avgTime = domainLogs.length > 0
                     ? domainLogs.reduce((sum, r) => sum + (r.loadTime || 0), 0) / domainLogs.length
                     : 0;
+                const reloadCount = domainLogs.length;
 
-                const secondaryStats = `Now ${formatDuration(nowTime)} | Avg ${formatDuration(avgTime)}`;
+                const secondaryStats = `Now ${formatDuration(nowTime)} | Avg ${formatDuration(avgTime)} | Reloads ${reloadCount}`;
                 const secondStatsElement = Array.from(secondStatsElements).find(el => el.dataset.domain === domain);
                 if (secondStatsElement) {
                     secondStatsElement.textContent = secondaryStats;
