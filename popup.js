@@ -1,12 +1,12 @@
 // popup.js
-
 const siteList = document.getElementById('siteList');
 const addBtn = document.getElementById('addBtn');
 
 let running = true;
 
-// duration formatter
+// 1. Format ms → ms, s, m, or h with your thresholds
 function formatDuration(ms) {
+    if (typeof ms !== 'number' || isNaN(ms)) return '0ms';
     if (ms < 1000) return `${ms}ms`;
     const s = ms / 1000;
     if (ms < 10000) return `${s.toFixed(2)}s`;
@@ -17,115 +17,119 @@ function formatDuration(ms) {
     return `${Math.round(h)}h`;
 }
 
-// draw UI
-async function draw() {
-    const { tracked = [], logs = [] } = await chrome.storage.local.get(['tracked', 'logs']);
-    const now = Date.now();
+// 2. Read storage and rebuild the list
+function updateUI() {
+    chrome.storage.local.get(['tracked', 'logs', 'icons'], items => {
+        const tracked = items.tracked || [];
+        const logs = items.logs || [];
+        const icons = items.icons || {};
+        const now = Date.now();
 
-    siteList.innerHTML = '';
+        siteList.innerHTML = '';
 
-    // Show every tracked domain, even if no logs yet
-    for (const domain of tracked) {
-        // filter its logs
-        const records = logs.filter(r => r.domain === domain);
+        tracked.forEach(domain => {
+            // Gather only this domain's records
+            const records = logs.filter(r => r.domain === domain);
 
-        // compute totals
-        const windows = {
-            h: 60 * 60 * 1000,
-            d: 24 * 60 * 60 * 1000,
-            w: 7 * 24 * 60 * 60 * 1000,
-            m: 30 * 24 * 60 * 60 * 1000
-        };
-        const totals = Object.fromEntries(
-            Object.entries(windows).map(([k, span]) => {
+            // Compute totals
+            const windows = {
+                h: 60 * 60 * 1000,
+                d: 24 * 60 * 60 * 1000,
+                w: 7 * 24 * 60 * 60 * 1000,
+                m: 30 * 24 * 60 * 60 * 1000
+            };
+            const totals = {};
+            for (const [k, span] of Object.entries(windows)) {
                 const sum = records
                     .filter(r => now - r.timestamp <= span)
-                    .reduce((a, r) => a + r.loadTime, 0);
-                return [k, sum];
-            })
-        );
-        const stats = [
-            `H ${formatDuration(totals.h)}`,
-            `D ${formatDuration(totals.d)}`,
-            `W ${formatDuration(totals.w)}`,
-            `M ${formatDuration(totals.m)}`
-        ].join(' | ');
+                    .reduce((acc, r) => acc + (r.loadTime || 0), 0);
+                totals[k] = sum;
+            }
+            const statsText = [
+                `H ${formatDuration(totals.h)}`,
+                `D ${formatDuration(totals.d)}`,
+                `W ${formatDuration(totals.w)}`,
+                `M ${formatDuration(totals.m)}`
+            ].join(' | ');
 
-        // build LI
-        const li = document.createElement('li');
+            // Build the <li>
+            const li = document.createElement('li');
 
-        // favicon fallback chain
-        const img = document.createElement('img');
-        img.className = 'favicon';
-        let step = 0;
-        const fallbacks = [
-            () => chrome.storage.local.get('icons').then(({ icons = {} }) => icons[domain] || null),
-            () => `chrome://favicon/?page_url=https://${domain}`,
-            () => `chrome://favicon/?page_url=http://${domain}`,
-            () => `https://${domain}/favicon.ico`,
-            () => `http://${domain}/favicon.ico`
-        ];
-        img.onerror = () => {
-            step++;
-            const next = fallbacks[step]?.();
-            if (next) Promise.resolve(next).then(src => img.src = src);
-        };
-        Promise.resolve(fallbacks[step]()).then(src => img.src = src);
+            // Favicon fallback chain
+            const img = document.createElement('img');
+            img.className = 'favicon';
+            let step = 0;
+            const fallbacks = [
+                icons[domain] || null,
+                `chrome://favicon/?page_url=https://${domain}`,
+                `chrome://favicon/?page_url=http://${domain}`,
+                `https://${domain}/favicon.ico`,
+                `http://${domain}/favicon.ico`
+            ];
+            img.onerror = () => {
+                step++;
+                if (step < fallbacks.length && fallbacks[step]) {
+                    img.src = fallbacks[step];
+                }
+            };
+            // Kick off first valid src
+            img.src = fallbacks.find(src => !!src) || '';
 
-        // text info
-        const info = document.createElement('div');
-        info.className = 'info';
-        info.innerHTML = `
-            <span class="domain">${domain}</span>
-            <span class="stats">${stats}</span>`;
+            // Text block
+            const info = document.createElement('div');
+            info.className = 'info';
+            const domSpan = document.createElement('span');
+            domSpan.className = 'domain';
+            domSpan.textContent = domain;
+            const statSpan = document.createElement('span');
+            statSpan.className = 'stats';
+            statSpan.textContent = statsText;
+            info.append(domSpan, statSpan);
 
-        // remove button
-        const rm = document.createElement('button');
-        rm.className = 'removeBtn';
-        rm.textContent = '×';
-        rm.title = 'Stop tracking';
-        rm.addEventListener('click', async () => {
-            const { tracked = [], logs = [] } = await chrome.storage.local.get(['tracked', 'logs']);
-            const newTracked = tracked.filter(d => d !== domain);
-            const newLogs = logs.filter(r => r.domain !== domain);
-            await chrome.storage.local.set({ tracked: newTracked, logs: newLogs });
-            // immediate UI update
-            draw();
+            // Remove button
+            const rm = document.createElement('button');
+            rm.className = 'removeBtn';
+            rm.textContent = '×';
+            rm.title = 'Stop tracking';
+            rm.addEventListener('click', () => {
+                chrome.storage.local.get(['tracked', 'logs'], data => {
+                    const newTracked = (data.tracked || []).filter(d => d !== domain);
+                    const newLogs = (data.logs || []).filter(r => r.domain !== domain);
+                    chrome.storage.local.set({ tracked: newTracked, logs: newLogs }, updateUI);
+                });
+            });
+
+            li.append(img, info, rm);
+            siteList.append(li);
         });
-
-        li.append(img, info, rm);
-        siteList.append(li);
-    }
+    });
 }
 
-// animation loop for live updates
+// 3. Live loop
 function loop() {
     if (!running) return;
-    draw();
+    updateUI();
     requestAnimationFrame(loop);
 }
+document.addEventListener('DOMContentLoaded', () => loop());
+window.addEventListener('unload', () => { running = false; });
 
-document.addEventListener('DOMContentLoaded', () => {
-    loop();
-});
-
-// stop loop on unload
-window.addEventListener('unload', () => {
-    running = false;
-});
-
-// add current site
-addBtn.addEventListener('click', async () => {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    const domain = new URL(tab.url).hostname;
+// 4. Add-button
+addBtn.addEventListener('click', () => {
     const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
-
-    const { tracked = [], logs = [] } = await chrome.storage.local.get(['tracked', 'logs']);
-    if (!tracked.includes(domain)) {
-        tracked.push(domain);
-        logs.push({ domain, timestamp: Date.now(), loadTime: 0 });
-        // prune old logs
-        const pruned = logs.filter(r => r.timestamp >= cutoff);
-        await chrome.storage.local.set({ tracked, logs: pruned });
-    }
+    chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+        if (!tabs[0]?.url) return;
+        const domain = new URL(tabs[0].url).hostname;
+        chrome.storage.local.get(['tracked', 'logs'], data => {
+            const tracked = data.tracked || [];
+            const logs = data.logs || [];
+            if (!tracked.includes(domain)) {
+                tracked.push(domain);
+                logs.push({ domain, timestamp: Date.now(), loadTime: 0 });
+            }
+            // prune old
+            const pruned = logs.filter(r => r.timestamp >= cutoff);
+            chrome.storage.local.set({ tracked, logs: pruned }, updateUI);
+        });
+    });
 });
