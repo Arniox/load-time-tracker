@@ -109,8 +109,6 @@ function updateUI() {
     chrome.storage.local.get(
         ['tracked', 'logs', 'icons', 'currentLoads'],
         data => {
-            console.log('UpdateUI data:', data); // Debug log
-
             const tracked = data.tracked || [];
             const logs = data.logs || [];
             const icons = data.icons || {};
@@ -209,12 +207,10 @@ function loop() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM loaded, starting tracking loop');
     loop();
 });
 
 window.addEventListener('unload', () => {
-    console.log('Window unloading, stopping tracking');
     running = false;
 });
 
@@ -222,19 +218,14 @@ window.addEventListener('unload', () => {
 // "+" button: add the current domain to `tracked` but don't start counting yet
 //
 addBtn.addEventListener('click', () => {
-    console.log('Add button clicked');
-
     chrome.tabs.query(
         { active: true, currentWindow: true },
         tabs => {
             if (!tabs[0]?.url) {
-                console.log('No active tab found');
                 return;
             }
 
             const domain = new URL(tabs[0].url).hostname;
-            console.log('Adding domain:', domain);
-
             chrome.storage.local.get(
                 ['tracked', 'logs'],
                 data => {
