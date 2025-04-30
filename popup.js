@@ -65,7 +65,7 @@ function createFaviconElement(domain, icons) {
     img.className = 'favicon';
     img.alt = domain;
 
-    // Default to a placeholder icon - this will show when all icon loading attempts fail
+    // Default to a placeholder icon
     const defaultIcon = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23ddd"/><text x="50%" y="50%" font-family="Arial" font-size="40" fill="%23555" text-anchor="middle" dominant-baseline="central">' + domain.charAt(0).toUpperCase() + '</text></svg>';
 
     // Check if the icon is already stored
@@ -78,67 +78,56 @@ function createFaviconElement(domain, icons) {
 
             // Set fallback if the stored icon fails
             img.onerror = () => {
-                tryFaviconFallbacks(img, domain, defaultIcon);
+                tryFaviconFallbacks(img, domain, defaultIcon, icons);
             };
         } else {
             // If no stored icon, try fallbacks immediately
-            tryFaviconFallbacks(img, domain, defaultIcon);
+            tryFaviconFallbacks(img, domain, defaultIcon, icons);
         }
     });
 
     return img;
 }
 
-// Helper function to attempt fallback favicon sources with proper error handling
-function tryFaviconFallbacks(img, domain, defaultIcon) {
-    // Build an array of potential favicon URLs to try
+// Helper function to attempt fallback favicon sources and save the result
+function tryFaviconFallbacks(img, domain, defaultIcon, icons) {
     const fallbacks = [
-        // Try standard favicon paths
         `https://${domain}/favicon.ico`,
         `https://${domain}/favicon.png`,
         `https://${domain}/apple-touch-icon.png`,
-        // Try common CDN patterns
-        `https://cdn.${domain}/favicon.ico`,
-        `https://static.${domain}/favicon.ico`,
-        `https://assets.${domain}/favicon.ico`,
-        `https://www.${domain}/favicon.ico`,
-        // Try common paths for assets
-        `https://${domain}/assets/favicon.ico`,
-        `https://${domain}/static/favicon.ico`,
-        `https://${domain}/images/favicon.ico`,
-        `https://${domain}/img/favicon.ico`,
-        `https://${domain}/icons/favicon.ico`,
-        // If all else fails, use our default
         defaultIcon
     ];
 
-    // Start with the first fallback
     let currentFallback = 0;
 
-    // Function to try the next fallback
     function tryNextFallback() {
         if (currentFallback < fallbacks.length) {
-            img.src = fallbacks[currentFallback];
-            currentFallback++;
+            const fallbackUrl = fallbacks[currentFallback];
+            img.src = fallbackUrl;
+
+            img.onload = () => {
+                // Save the successfully loaded icon into storage
+                chrome.storage.local.get({ icons: {} }, ({ icons }) => {
+                    icons[domain] = fallbackUrl;
+                    chrome.storage.local.set({ icons });
+                });
+            };
+
+            img.onerror = () => {
+                currentFallback++;
+                tryNextFallback();
+            };
         }
     }
 
-    // Configure error handler for fallbacks
-    img.onerror = tryNextFallback;
-
-    // Start the fallback process
     tryNextFallback();
 }
 
 // Function to properly remove a site from tracking
 function removeSite(domain) {
-    console.log(`Removing site: ${domain}`); // Debug log
-
     chrome.storage.local.get(
         ['tracked', 'logs', 'currentLoads', 'icons'],
         data => {
-            console.log('Before removal:', data); // Debug log
-
             // Filter out the domain from the tracked list
             const tracked = (data.tracked || []).filter(x => x !== domain);
 
@@ -165,7 +154,6 @@ function removeSite(domain) {
             chrome.storage.local.set(
                 { tracked, logs, currentLoads, icons },
                 () => {
-                    console.log('Storage updated after removal'); // Debug log
                     renderSiteList(); // Only re-render the list after storage changes
                 }
             );
@@ -221,7 +209,6 @@ function renderSiteList() {
                 rm.addEventListener('click', function (e) {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('Remove button clicked for:', this.dataset.domain);
                     removeSite(this.dataset.domain);
                     return false;
                 });
@@ -307,41 +294,34 @@ window.addEventListener('unload', () => {
 // "+" button: add the current domain to `tracked` but don't start counting yet
 //
 addBtn.addEventListener('click', () => {
-    chrome.tabs.query(
-        { active: true, currentWindow: true },
-        tabs => {
-            if (!tabs[0]?.url) {
-                return;
+    chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+        if (!tabs[0]?.url) return;
+
+        const domain = new URL(tabs[0].url).hostname;
+        chrome.storage.local.get(['tracked', 'logs'], data => {
+            const tracked = data.tracked || [];
+            const logs = data.logs || [];
+
+            // Only add if not already tracking
+            if (!tracked.includes(domain)) {
+                tracked.push(domain);
+            } else {
+                console.log('Domain already being tracked');
             }
 
-            const domain = new URL(tabs[0].url).hostname;
-            chrome.storage.local.get(
-                ['tracked', 'logs'],
-                data => {
-                    const tracked = data.tracked || [];
-                    const logs = data.logs || [];
+            // Prune old logs
+            const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+            const pruned = logs.filter(r => r.timestamp >= cutoff);
 
-                    // Only add if not already tracking
-                    if (!tracked.includes(domain)) {
-                        tracked.push(domain);
-                        console.log('Domain added to tracked sites');
-                    } else {
-                        console.log('Domain already being tracked');
-                    }
+            chrome.storage.local.set({ tracked, logs: pruned }, () => {
+                renderSiteList(); // Re-render to show the new site
 
-                    // Prune old logs
-                    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
-                    const pruned = logs.filter(r => r.timestamp >= cutoff);
-
-                    chrome.storage.local.set(
-                        { tracked, logs: pruned },
-                        () => {
-                            console.log('Storage updated after adding site');
-                            renderSiteList(); // Re-render to show the new site
-                        }
-                    );
-                }
-            );
-        }
-    );
+                // Dynamically execute content.js to scrape the favicon
+                chrome.scripting.executeScript({
+                    target: { tabId: tabs[0].id },
+                    files: ['content.js']
+                }, () => { });
+            });
+        });
+    });
 });
