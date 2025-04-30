@@ -59,6 +59,49 @@ function getTimeInWindow(logs, domain, windowType, currentValue) {
         .reduce((sum, r) => sum + (r.loadTime || 0), 0);
 }
 
+// Function to properly remove a site from tracking
+function removeSite(domain) {
+    console.log(`Removing site: ${domain}`); // Debug log
+
+    chrome.storage.local.get(
+        ['tracked', 'logs', 'currentLoads', 'icons'],
+        data => {
+            console.log('Before removal:', data); // Debug log
+
+            // Filter out the domain from the tracked list
+            const tracked = (data.tracked || []).filter(x => x !== domain);
+
+            // Filter out all logs for this domain
+            const logs = (data.logs || []).filter(r => r.domain !== domain);
+
+            // Remove any in-flight loads
+            const currentLoads = { ...(data.currentLoads || {}) };
+            delete currentLoads[domain];
+
+            // Remove icon if stored
+            const icons = { ...(data.icons || {}) };
+            delete icons[domain];
+
+            // Debug data after changes
+            console.log('After removal preparation:', {
+                tracked,
+                logCount: logs.length,
+                currentLoads,
+                icons
+            });
+
+            // Update storage with all the cleaned data
+            chrome.storage.local.set(
+                { tracked, logs, currentLoads, icons },
+                () => {
+                    console.log('Storage updated after removal'); // Debug log
+                    updateUI(); // Make sure UI is updated after storage changes
+                }
+            );
+        }
+    );
+}
+
 //
 // Rebuild the popup list—combining saved logs + any in-flight load.
 //
@@ -66,6 +109,8 @@ function updateUI() {
     chrome.storage.local.get(
         ['tracked', 'logs', 'icons', 'currentLoads'],
         data => {
+            console.log('UpdateUI data:', data); // Debug log
+
             const tracked = data.tracked || [];
             const logs = data.logs || [];
             const icons = data.icons || {};
@@ -125,51 +170,30 @@ function updateUI() {
                 const info = document.createElement('div');
                 info.className = 'info';
                 info.innerHTML = `
-          <span class="domain">${domain}</span>
-          <span class="stats">${stats}</span>
-        `;
+                    <span class="domain">${domain}</span>
+                    <span class="stats">${stats}</span>
+                `;
 
-                // "×" remove button
+                // "×" remove button - Now creates a standalone function for event handler
                 const rm = document.createElement('button');
                 rm.className = 'removeBtn';
                 rm.textContent = '×';
                 rm.title = 'Stop tracking';
-                rm.addEventListener('click', (e) => {
-                    e.stopPropagation(); // Prevent event bubbling
+
+                // Using a named function for better reliability
+                function handleRemoveClick(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Remove button clicked for:', domain); // Debug log
                     removeSite(domain);
-                });
+                    return false;
+                }
+
+                rm.addEventListener('click', handleRemoveClick);
 
                 li.append(img, info, rm);
                 siteList.append(li);
             });
-        }
-    );
-}
-
-// Function to properly remove a site from tracking
-function removeSite(domain) {
-    chrome.storage.local.get(
-        ['tracked', 'logs', 'currentLoads', 'icons'],
-        data => {
-            // Filter out the domain from the tracked list
-            const tracked = (data.tracked || []).filter(x => x !== domain);
-
-            // Filter out all logs for this domain
-            const logs = (data.logs || []).filter(r => r.domain !== domain);
-
-            // Remove any in-flight loads
-            const currentLoads = { ...(data.currentLoads || {}) };
-            delete currentLoads[domain];
-
-            // Remove icon if stored
-            const icons = { ...(data.icons || {}) };
-            delete icons[domain];
-
-            // Update storage with all the cleaned data
-            chrome.storage.local.set(
-                { tracked, logs, currentLoads, icons },
-                updateUI
-            );
         }
     );
 }
@@ -184,18 +208,33 @@ function loop() {
     requestAnimationFrame(loop);
 }
 
-document.addEventListener('DOMContentLoaded', () => loop());
-window.addEventListener('unload', () => { running = false; });
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM loaded, starting tracking loop');
+    loop();
+});
+
+window.addEventListener('unload', () => {
+    console.log('Window unloading, stopping tracking');
+    running = false;
+});
 
 //
 // "+" button: add the current domain to `tracked` but don't start counting yet
 //
 addBtn.addEventListener('click', () => {
+    console.log('Add button clicked');
+
     chrome.tabs.query(
         { active: true, currentWindow: true },
         tabs => {
-            if (!tabs[0]?.url) return;
+            if (!tabs[0]?.url) {
+                console.log('No active tab found');
+                return;
+            }
+
             const domain = new URL(tabs[0].url).hostname;
+            console.log('Adding domain:', domain);
+
             chrome.storage.local.get(
                 ['tracked', 'logs'],
                 data => {
@@ -205,6 +244,9 @@ addBtn.addEventListener('click', () => {
                     // Only add if not already tracking
                     if (!tracked.includes(domain)) {
                         tracked.push(domain);
+                        console.log('Domain added to tracked sites');
+                    } else {
+                        console.log('Domain already being tracked');
                     }
 
                     // Prune old logs
@@ -212,8 +254,11 @@ addBtn.addEventListener('click', () => {
                     const pruned = logs.filter(r => r.timestamp >= cutoff);
 
                     chrome.storage.local.set(
-                        { tracked: tracked, logs: pruned },
-                        updateUI
+                        { tracked, logs: pruned },
+                        () => {
+                            console.log('Storage updated after adding site');
+                            updateUI();
+                        }
                     );
                 }
             );
