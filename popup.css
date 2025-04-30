@@ -1,6 +1,7 @@
 /* container */
 .container {
-    width: 260px;
+    width: 300px;
+    overflow: hidden;
     padding: 12px;
     font-family: Arial, sans-serif;
     box-sizing: border-box;
