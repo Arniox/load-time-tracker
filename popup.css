@@ -1,0 +1,28 @@
+body {
+    font-family: sans-serif;
+    width: 300px;
+    padding: 10px;
+}
+
+#siteList {
+    list-style: none;
+    padding: 0;
+}
+
+.siteItem {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.siteItem img {
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+}
+
+.stats {
+    margin-left: auto;
+    text-align: right;
+    font-size: 0.9em;
+}
