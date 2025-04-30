@@ -95,10 +95,19 @@ function tryFaviconFallbacks(img, domain, defaultIcon) {
         `https://${domain}/favicon.ico`,
         `https://${domain}/favicon.png`,
         `https://${domain}/apple-touch-icon.png`,
+        // Try common CDN patterns
+        `https://cdn.${domain}/favicon.ico`,
+        `https://static.${domain}/favicon.ico`,
+        `https://assets.${domain}/favicon.ico`,
+        `https://www.${domain}/favicon.ico`,
         // Try common paths for assets
         `https://${domain}/assets/favicon.ico`,
         `https://${domain}/static/favicon.ico`,
         `https://${domain}/images/favicon.ico`,
+        `https://${domain}/img/favicon.ico`,
+        `https://${domain}/icons/favicon.ico`,
+        // Special cases for common domains
+        `https://cdn.vsassets.io/content/icons/favicon.ico`, // Azure DevOps
         // If all else fails, use our default
         defaultIcon
     ];
