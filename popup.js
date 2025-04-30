@@ -1,9 +1,12 @@
 // popup.js
+
 const siteList = document.getElementById('siteList');
 const addBtn = document.getElementById('addBtn');
 let running = true;
 
-// Format a millisecond total into ms, s, m, or h
+//
+// Convert a millisecond total into your desired unit format
+//
 function formatDuration(ms) {
     if (typeof ms !== 'number' || isNaN(ms)) return '0ms';
     if (ms < 1000) return `${ms}ms`;
@@ -16,138 +19,156 @@ function formatDuration(ms) {
     return `${Math.round(h)}h`;
 }
 
+//
+// Rebuild the popup list—combining saved logs + any in-flight load.
+//
 function updateUI() {
-    chrome.storage.local.get(['tracked', 'logs', 'icons', 'currentLoads'], items => {
-        const tracked = items.tracked || [];
-        const logs = items.logs || [];
-        const icons = items.icons || {};
-        const currentLoads = items.currentLoads || {};
-        const now = Date.now();
+    chrome.storage.local.get(
+        ['tracked', 'logs', 'icons', 'currentLoads'],
+        data => {
+            const tracked = data.tracked || [];
+            const logs = data.logs || [];
+            const icons = data.icons || {};
+            const currentLoads = data.currentLoads || {};
+            const now = Date.now();
 
-        siteList.innerHTML = '';
+            siteList.innerHTML = '';
 
-        tracked.forEach(domain => {
-            // get past logs
-            const recs = logs.filter(r => r.domain === domain);
+            tracked.forEach(domain => {
+                // Gather only this domain’s past logs
+                const recs = logs.filter(r => r.domain === domain);
 
-            // time windows
-            const windows = {
-                h: 60 * 60 * 1000,
-                d: 24 * 60 * 60 * 1000,
-                w: 7 * 24 * 60 * 60 * 1000,
-                m: 30 * 24 * 60 * 60 * 1000
-            };
+                // Define your sliding windows
+                const windows = {
+                    h: 60 * 60 * 1000,
+                    d: 24 * 60 * 60 * 1000,
+                    w: 7 * 24 * 60 * 60 * 1000,
+                    m: 30 * 24 * 60 * 60 * 1000
+                };
 
-            // sum logs + in-flight
-            const totals = {};
-            for (const [k, span] of Object.entries(windows)) {
-                let sum = recs
-                    .filter(r => now - r.timestamp <= span)
-                    .reduce((a, r) => a + (r.loadTime || 0), 0);
+                // Sum each window + add live delta if in-flight
+                const totals = {};
+                for (const [k, span] of Object.entries(windows)) {
+                    let sum = recs
+                        .filter(r => now - r.timestamp <= span)
+                        .reduce((a, r) => a + (r.loadTime || 0), 0);
 
-                // if there’s an in-flight start and it’s within this window
-                const start = currentLoads[domain];
-                if (typeof start === 'number' && (now - start) <= span) {
-                    sum += (now - start);
+                    // If there’s a start time still open, include it
+                    const start = currentLoads[domain];
+                    if (typeof start === 'number' && (now - start) <= span) {
+                        sum += (now - start);
+                    }
+                    totals[k] = sum;
                 }
-                totals[k] = sum;
-            }
 
-            // stats line
-            const stats = [
-                `H ${formatDuration(totals.h)}`,
-                `D ${formatDuration(totals.d)}`,
-                `W ${formatDuration(totals.w)}`,
-                `M ${formatDuration(totals.m)}`
-            ].join(' | ');
+                // Build the stats line
+                const stats = [
+                    `H ${formatDuration(totals.h)}`,
+                    `D ${formatDuration(totals.d)}`,
+                    `W ${formatDuration(totals.w)}`,
+                    `M ${formatDuration(totals.m)}`
+                ].join(' | ');
 
-            // build list item
-            const li = document.createElement('li');
+                // Create list item
+                const li = document.createElement('li');
 
-            // favicon with fallbacks
-            const img = document.createElement('img');
-            img.className = 'favicon';
-            let step = 0;
-            const fallbacks = [
-                icons[domain] || null,
-                `chrome://favicon/?page_url=https://${domain}`,
-                `chrome://favicon/?page_url=http://${domain}`,
-                `https://${domain}/favicon.ico`,
-                `http://${domain}/favicon.ico`
-            ];
-            img.onerror = () => {
-                step++;
-                if (fallbacks[step]) img.src = fallbacks[step];
-            };
-            img.src = fallbacks.find(src => !!src) || '';
+                // Favicon with multiple fallbacks
+                const img = document.createElement('img');
+                img.className = 'favicon';
+                let step = 0;
+                const fallbacks = [
+                    icons[domain] || null,
+                    `chrome://favicon/?page_url=https://${domain}`,
+                    `chrome://favicon/?page_url=http://${domain}`,
+                    `https://${domain}/favicon.ico`,
+                    `http://${domain}/favicon.ico`
+                ];
+                img.onerror = () => {
+                    step++;
+                    if (fallbacks[step]) img.src = fallbacks[step];
+                };
+                img.src = fallbacks.find(src => !!src) || '';
 
-            // text block
-            const info = document.createElement('div');
-            info.className = 'info';
-            info.innerHTML = `
-        <span class="domain">${domain}</span>
-        <span class="stats">${stats}</span>
-      `;
+                // Domain + stats block
+                const info = document.createElement('div');
+                info.className = 'info';
+                info.innerHTML = `
+          <span class="domain">${domain}</span>
+          <span class="stats">${stats}</span>
+        `;
 
-            // remove button: clears tracked, logs & currentLoads
-            const rm = document.createElement('button');
-            rm.className = 'removeBtn';
-            rm.textContent = '×';
-            rm.title = 'Stop tracking';
-            rm.addEventListener('click', () => {
-                chrome.storage.local.get(['tracked', 'logs', 'currentLoads'], data => {
-                    const nt = (data.tracked || []).filter(d => d !== domain);
-                    const nl = (data.logs || []).filter(r => r.domain !== domain);
-                    const nc = Object.assign({}, data.currentLoads || {});
-                    delete nc[domain];
-                    chrome.storage.local.set({
-                        tracked: nt,
-                        logs: nl,
-                        currentLoads: nc
-                    }, updateUI);
+                // “×” remove button
+                const rm = document.createElement('button');
+                rm.className = 'removeBtn';
+                rm.textContent = '×';
+                rm.title = 'Stop tracking';
+                rm.addEventListener('click', () => {
+                    chrome.storage.local.get(
+                        ['tracked', 'logs', 'currentLoads'],
+                        d => {
+                            const t = (d.tracked || []).filter(x => x !== domain);
+                            const l = (d.logs || []).filter(r => r.domain !== domain);
+                            const c = { ...(d.currentLoads || {}) };
+                            delete c[domain];
+                            chrome.storage.local.set(
+                                { tracked: t, logs: l, currentLoads: c },
+                                updateUI
+                            );
+                        }
+                    );
                 });
-            });
 
-            li.append(img, info, rm);
-            siteList.append(li);
-        });
-    });
+                li.append(img, info, rm);
+                siteList.append(li);
+            });
+        }
+    );
 }
 
-// live animation loop
+//
+// Kick off a continuous animation‐frame loop so you see live counts.
+// It’ll also pick up completed loads the moment they’re written.
+//
 function loop() {
     if (!running) return;
     updateUI();
     requestAnimationFrame(loop);
 }
 
-// start & stop
 document.addEventListener('DOMContentLoaded', () => loop());
 window.addEventListener('unload', () => { running = false; });
 
-// “+” button: adds to tracked & primes a zero‐entry
+//
+// “+” button: add the current domain to `tracked` and prime its
+// in-flight start so you see the live count immediately.
+//
 addBtn.addEventListener('click', () => {
     const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
-    chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-        if (!tabs[0]?.url) return;
-        const domain = new URL(tabs[0].url).hostname;
-        chrome.storage.local.get(['tracked', 'logs', 'currentLoads'], data => {
-            const tr = data.tracked || [];
-            const lg = data.logs || [];
-            const cl = data.currentLoads || {};
+    chrome.tabs.query(
+        { active: true, currentWindow: true },
+        tabs => {
+            if (!tabs[0]?.url) return;
+            const domain = new URL(tabs[0].url).hostname;
+            chrome.storage.local.get(
+                ['tracked', 'logs', 'currentLoads'],
+                data => {
+                    const t = data.tracked || [];
+                    const l = data.logs || [];
+                    const c = data.currentLoads || {};
 
-            if (!tr.includes(domain)) {
-                tr.push(domain);
-                cl[domain] = Date.now();            // start counting immediately
-                lg.push({ domain, timestamp: Date.now(), loadTime: 0 });
-            }
+                    if (!t.includes(domain)) {
+                        t.push(domain);
+                        c[domain] = Date.now();       // start live count now
+                    }
+                    // prune old logs
+                    const pruned = l.filter(r => r.timestamp >= cutoff);
 
-            const prunedLogs = lg.filter(r => r.timestamp >= cutoff);
-            chrome.storage.local.set({
-                tracked: tr,
-                logs: prunedLogs,
-                currentLoads: cl
-            }, updateUI);
-        });
-    });
+                    chrome.storage.local.set(
+                        { tracked: t, logs: pruned, currentLoads: c },
+                        updateUI
+                    );
+                }
+            );
+        }
+    );
 });
