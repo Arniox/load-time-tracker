@@ -320,7 +320,13 @@ addBtn.addEventListener('click', () => {
                 chrome.scripting.executeScript({
                     target: { tabId: tabs[0].id },
                     files: ['content.js']
-                }, () => { });
+                }, (results) => {
+                    if (chrome.runtime.lastError) {
+                        console.error('Error executing content script:', chrome.runtime.lastError.message);
+                    } else {
+                        console.log('Content script executed successfully:', results);
+                    }
+                });
             });
         });
     });
