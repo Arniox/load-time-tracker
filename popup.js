@@ -68,21 +68,23 @@ function createFaviconElement(domain, icons) {
     // Default to a placeholder icon - this will show when all icon loading attempts fail
     const defaultIcon = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23ddd"/><text x="50%" y="50%" font-family="Arial" font-size="40" fill="%23555" text-anchor="middle" dominant-baseline="central">' + domain.charAt(0).toUpperCase() + '</text></svg>';
 
-    // Try to load favicon using a better approach
-    const iconUrl = icons[domain];
+    // Check if the icon is already stored
+    chrome.storage.local.get({ icons: {} }, ({ icons }) => {
+        const storedIcon = icons[domain];
 
-    if (iconUrl) {
-        // Use stored icon if available
-        img.src = iconUrl;
+        if (storedIcon) {
+            // Use the stored icon if available
+            img.src = storedIcon;
 
-        // Set fallback if stored icon fails
-        img.onerror = () => {
+            // Set fallback if the stored icon fails
+            img.onerror = () => {
+                tryFaviconFallbacks(img, domain, defaultIcon);
+            };
+        } else {
+            // If no stored icon, try fallbacks immediately
             tryFaviconFallbacks(img, domain, defaultIcon);
-        };
-    } else {
-        // Try fallbacks immediately if no stored icon
-        tryFaviconFallbacks(img, domain, defaultIcon);
-    }
+        }
+    });
 
     return img;
 }
@@ -106,8 +108,6 @@ function tryFaviconFallbacks(img, domain, defaultIcon) {
         `https://${domain}/images/favicon.ico`,
         `https://${domain}/img/favicon.ico`,
         `https://${domain}/icons/favicon.ico`,
-        // Special cases for common domains
-        `https://cdn.vsassets.io/content/icons/favicon.ico`, // Azure DevOps
         // If all else fails, use our default
         defaultIcon
     ];

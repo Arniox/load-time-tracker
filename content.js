@@ -1,5 +1,7 @@
 // content.js
 (() => {
+    console.log('Content script loaded for:', window.location.href);
+
     // Function to extract and normalize favicon URL
     function extractFaviconUrl() {
         // Check for common favicon link tags in order of preference
@@ -38,6 +40,7 @@
             href = base + href;
         }
 
+        console.log('Found favicon URL:', href);
         return href;
     }
 
@@ -46,14 +49,14 @@
     const faviconUrl = extractFaviconUrl();
 
     // Store the favicon URL if found
-    if (faviconUrl) {
-        chrome.storage.local.get({ icons: {} }, ({ icons }) => {
-            // Only store the first one we see for a domain
-            if (!icons[domain]) {
-                console.log(`Found favicon for ${domain}: ${faviconUrl}`);
-                icons[domain] = faviconUrl;
-                chrome.storage.local.set({ icons });
-            }
-        });
-    }
+    chrome.storage.local.get({ icons: {} }, ({ icons }) => {
+        // Always update the favicon for the domain
+        if (faviconUrl) {
+            console.log(`Storing favicon for ${domain}: ${faviconUrl}`);
+            icons[domain] = faviconUrl;
+        } else {
+            console.log(`No favicon found for ${domain}`);
+        }
+        chrome.storage.local.set({ icons });
+    });
 })();
