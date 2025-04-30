@@ -57,7 +57,21 @@ async function refresh() {
         statsDiv.textContent = statsText;
 
         info.append(domainSpan, statsDiv);
-        li.append(img, info);
+
+        // remove button
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'removeBtn';
+        removeBtn.textContent = '×';
+        removeBtn.title = 'Stop tracking';
+        removeBtn.addEventListener('click', () => {
+            chrome.storage.local.get({ logs: [] }, ({ logs }) => {
+                const filtered = logs.filter(r => r.domain !== domain);
+                chrome.storage.local.set({ logs: filtered }, refresh);
+            });
+        });
+
+        // assemble
+        li.append(img, info, removeBtn);
         siteList.append(li);
     }
 }

@@ -1,4 +1,4 @@
-/* overall container */
+/* container */
 .container {
     width: 260px;
     padding: 12px;
@@ -6,11 +6,36 @@
     box-sizing: border-box;
 }
 
-/* header */
-header h1 {
+/* header with title + add button */
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.header h1 {
     font-size: 14px;
-    margin: 0 0 8px;
+    margin: 0;
     color: #333;
+}
+
+#addBtn {
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 50%;
+    background-color: #4CAF50;
+    color: #fff;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.2s;
+}
+
+#addBtn:hover {
+    background-color: #45A049;
 }
 
 /* list styling */
@@ -40,15 +65,14 @@ header h1 {
     flex-shrink: 0;
 }
 
-/* text column */
+/* text + stats */
 .info {
     display: flex;
     flex-direction: column;
     margin-left: 10px;
-    overflow: hidden;
+    flex: 1;
 }
 
-/* domain line */
 .domain {
     font-size: 14px;
     color: #222;
@@ -57,7 +81,6 @@ header h1 {
     text-overflow: ellipsis;
 }
 
-/* stats line under domain */
 .stats {
     font-size: 12px;
     color: #555;
@@ -65,24 +88,17 @@ header h1 {
     white-space: nowrap;
 }
 
-/* green circular "+" button */
-#addBtn {
-    position: absolute;
-    bottom: 12px;
-    right: 12px;
-    width: 30px;
-    height: 30px;
+/* remove-button */
+.removeBtn {
     border: none;
-    border-radius: 50%;
-    background-color: #4CAF50;
-    color: #fff;
-    font-size: 18px;
-    line-height: 1;
+    background: transparent;
+    color: #888;
+    font-size: 14px;
+    margin-left: 8px;
     cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    transition: background-color 0.2s;
+    line-height: 1;
 }
 
-#addBtn:hover {
-    background-color: #45A049;
+.removeBtn:hover {
+    color: #333;
 }
