@@ -3,21 +3,22 @@
 const siteList = document.getElementById('siteList');
 const addBtn = document.getElementById('addBtn');
 
-let rafId = null;
+let running = true;
 
-// Convert a millisecond value into the desired display format
+// Format ms into ms/s/m/h per your rules
 function formatDuration(ms) {
-    if (ms < 1000) return `${ms}ms`;                     // under 1s → ms
-    const secs = ms / 1000;
-    if (ms < 10000) return `${secs.toFixed(2)}s`;        // 1s–10s → 2-dec places
-    if (ms < 60000) return `${Math.round(secs)}s`;       // 10s–60s → whole seconds
-    const mins = ms / 60000;
-    if (ms < 3600000) return `${Math.round(mins)}m`;       // 1m–60m → whole minutes
-    const hrs = ms / 3600000;
-    return `${Math.round(hrs)}h`;         // above 1h → whole hours
+    if (ms < 1000) return `${ms}ms`;
+    const s = ms / 1000;
+    if (ms < 10000) return `${s.toFixed(2)}s`;
+    if (ms < 60000) return `${Math.round(s)}s`;
+    const m = ms / 60000;
+    if (ms < 3600000) return `${Math.round(m)}m`;
+    const h = ms / 3600000;
+    return `${Math.round(h)}h`;
 }
 
-async function refresh() {
+// Draw once
+async function draw() {
     const { logs = [] } = await chrome.storage.local.get('logs');
     const now = Date.now();
 
@@ -30,7 +31,7 @@ async function refresh() {
     siteList.innerHTML = '';
 
     for (const [domain, records] of Object.entries(byDomain)) {
-        // Calculate totals for each window
+        // compute sums
         const windows = {
             h: 60 * 60 * 1000,
             d: 24 * 60 * 60 * 1000,
@@ -41,23 +42,16 @@ async function refresh() {
             Object.entries(windows).map(([k, span]) => {
                 const sum = records
                     .filter(r => now - r.timestamp <= span)
-                    .reduce((a, r) => a + r.loadTime, 0);
+                    .reduce((sum, r) => sum + r.loadTime, 0);
                 return [k, sum];
             })
         );
+        const stats = `H ${formatDuration(totals.h)} | D ${formatDuration(totals.d)} | W ${formatDuration(totals.w)} | M ${formatDuration(totals.m)}`;
 
-        // Build the stats line with formatted units
-        const statsText = [
-            `H ${formatDuration(totals.h)}`,
-            `D ${formatDuration(totals.d)}`,
-            `W ${formatDuration(totals.w)}`,
-            `M ${formatDuration(totals.m)}`
-        ].join(' | ');
-
-        // Create the LI
+        // build LI
         const li = document.createElement('li');
 
-        // Favicon element (same fallback chain as before)
+        // favicon fallback chain
         const img = document.createElement('img');
         img.className = 'favicon';
         let step = 0;
@@ -73,35 +67,51 @@ async function refresh() {
             const next = fallbacks[step]?.();
             if (next) Promise.resolve(next).then(src => img.src = src);
         };
-        // Kick off first favicon attempt (async if needed)
-        Promise.resolve(fallbacks[step]()).then(src => { if (src) img.src = src; });
+        Promise.resolve(fallbacks[step]()).then(src => img.src = src);
 
-        // Domain + stats container
+        // info
         const info = document.createElement('div');
         info.className = 'info';
         info.innerHTML = `
       <span class="domain">${domain}</span>
-      <span class="stats">${statsText}</span>
+      <span class="stats">${stats}</span>
     `;
 
-        // Remove‐tracking button
-        const removeBtn = document.createElement('button');
-        removeBtn.className = 'removeBtn';
-        removeBtn.textContent = '×';
-        removeBtn.title = 'Stop tracking';
-        removeBtn.addEventListener('click', () => {
+        // remove
+        const rm = document.createElement('button');
+        rm.className = 'removeBtn';
+        rm.textContent = '×';
+        rm.title = 'Stop tracking';
+        rm.addEventListener('click', () => {
             chrome.storage.local.get({ logs: [] }, ({ logs }) => {
-                const filtered = logs.filter(r => r.domain !== domain);
-                chrome.storage.local.set({ logs: filtered }, refresh);
+                const keep = logs.filter(r => r.domain !== domain);
+                chrome.storage.local.set({ logs: keep });
             });
         });
 
-        li.append(img, info, removeBtn);
+        li.append(img, info, rm);
         siteList.append(li);
     }
 }
 
-// When you click “+” to add the current site
+// animation loop
+function loop() {
+    if (!running) return;
+    draw();
+    requestAnimationFrame(loop);
+}
+
+// start the loop when the popup loads
+document.addEventListener('DOMContentLoaded', () => {
+    loop();
+});
+
+// stop the loop if the popup unloads (cleanup)
+window.addEventListener('unload', () => {
+    running = false;
+});
+
+// “+” button unchanged
 addBtn.addEventListener('click', async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     const domain = new URL(tab.url).hostname;
@@ -110,20 +120,6 @@ addBtn.addEventListener('click', async () => {
     chrome.storage.local.get({ logs: [] }, ({ logs }) => {
         logs.push({ domain, timestamp: Date.now(), loadTime: 0 });
         const pruned = logs.filter(r => r.timestamp >= cutoff);
-        chrome.storage.local.set({ logs: pruned }, () => {
-            // Immediately refresh to show the new domain
-            refresh();
-        });
+        chrome.storage.local.set({ logs: pruned });
     });
 });
-
-// Listen for any changes to logs and refresh next frame
-chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === 'local' && changes.logs) {
-        if (rafId) cancelAnimationFrame(rafId);
-        rafId = requestAnimationFrame(refresh);
-    }
-});
-
-// Initial paint
-refresh();
