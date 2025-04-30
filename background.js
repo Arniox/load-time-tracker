@@ -33,8 +33,8 @@ chrome.webNavigation.onCompleted.addListener(details => {
     if (details.frameId !== 0) return; // Ignore subframes
     const domain = new URL(details.url).hostname;
 
-    chrome.storage.local.get({ tracked: [], currentLoads: {}, logs: [] }, data => {
-        const { tracked, currentLoads, logs } = data;
+    chrome.storage.local.get({ tracked: [], currentLoads: {}, logs: [], recentLoads: {} }, data => {
+        const { tracked, currentLoads, logs, recentLoads } = data;
         if (!tracked.includes(domain)) return; // Only track if the domain is being tracked
 
         const domainLoads = currentLoads[domain];
@@ -63,7 +63,10 @@ chrome.webNavigation.onCompleted.addListener(details => {
                 delete currentLoads[domain]; // Clean up if no tabs are left for this domain
             }
 
-            // Atomically update currentLoads and logs
+            // Update recentLoads with the most recent load time
+            recentLoads[domain] = loadTime;
+
+            // Atomically update currentLoads, logs, and recentLoads
             const pruned = pruneOldLogs(logs);
             if (typeof loadTime === 'number' && !isNaN(loadTime)) {
                 pruned.push({
@@ -77,7 +80,7 @@ chrome.webNavigation.onCompleted.addListener(details => {
                 });
             }
 
-            chrome.storage.local.set({ currentLoads, logs: pruned });
+            chrome.storage.local.set({ currentLoads, logs: pruned, recentLoads });
         }).catch(() => {
             // In the unlikely event scripting.executeScript fails,
             // fall back to our own timestamp diff:
@@ -88,6 +91,8 @@ chrome.webNavigation.onCompleted.addListener(details => {
                 delete currentLoads[domain];
             }
 
+            recentLoads[domain] = loadTime;
+
             const pruned = pruneOldLogs(logs);
             if (typeof loadTime === 'number' && !isNaN(loadTime)) {
                 pruned.push({
@@ -101,7 +106,7 @@ chrome.webNavigation.onCompleted.addListener(details => {
                 });
             }
 
-            chrome.storage.local.set({ currentLoads, logs: pruned });
+            chrome.storage.local.set({ currentLoads, logs: pruned, recentLoads });
         });
     });
 });

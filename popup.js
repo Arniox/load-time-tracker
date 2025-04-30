@@ -232,10 +232,11 @@ function renderSiteList() {
 // Only update the stats in existing list items
 function updateStats() {
     chrome.storage.local.get(
-        ['tracked', 'logs', 'currentLoads'],
+        ['tracked', 'logs', 'currentLoads', 'recentLoads'],
         data => {
             const logs = data.logs || [];
             const currentLoads = data.currentLoads || {};
+            const recentLoads = data.recentLoads || {};
             const now = Date.now();
 
             // Get all stats elements in the DOM
@@ -255,7 +256,7 @@ function updateStats() {
 
                 // Include live duration for all tabs of the domain
                 const domainLoads = currentLoads[domain];
-                let nowTime = 0;
+                let nowTime = recentLoads[domain] || 0; // Start with the most recent load time
                 if (domainLoads) {
                     Object.values(domainLoads).forEach(startTime => {
                         if (typeof startTime === 'number') {
