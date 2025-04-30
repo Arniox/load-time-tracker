@@ -95,17 +95,15 @@ function removeSite(domain) {
                 { tracked, logs, currentLoads, icons },
                 () => {
                     console.log('Storage updated after removal'); // Debug log
-                    updateUI(); // Make sure UI is updated after storage changes
+                    renderSiteList(); // Only re-render the list after storage changes
                 }
             );
         }
     );
 }
 
-//
-// Rebuild the popup list—combining saved logs + any in-flight load.
-//
-function updateUI() {
+// Initial rendering of the site list
+function renderSiteList() {
     chrome.storage.local.get(
         ['tracked', 'logs', 'icons', 'currentLoads'],
         data => {
@@ -113,11 +111,89 @@ function updateUI() {
             const logs = data.logs || [];
             const icons = data.icons || {};
             const currentLoads = data.currentLoads || {};
-            const now = Date.now();
 
             siteList.innerHTML = '';
 
             tracked.forEach(domain => {
+                // Create list item
+                const li = document.createElement('li');
+                li.dataset.domain = domain;
+
+                // Favicon with multiple fallbacks
+                const img = document.createElement('img');
+                img.className = 'favicon';
+                let step = 0;
+                const fallbacks = [
+                    icons[domain] || null,
+                    `chrome://favicon/?page_url=https://${domain}`,
+                    `chrome://favicon/?page_url=http://${domain}`,
+                    `https://${domain}/favicon.ico`,
+                    `http://${domain}/favicon.ico`
+                ];
+                img.onerror = () => {
+                    step++;
+                    if (fallbacks[step]) img.src = fallbacks[step];
+                };
+                img.src = fallbacks.find(src => !!src) || '';
+
+                // Domain + stats block
+                const info = document.createElement('div');
+                info.className = 'info';
+
+                // Add domain
+                const domainSpan = document.createElement('span');
+                domainSpan.className = 'domain';
+                domainSpan.textContent = domain;
+
+                // Add stats container (will be updated by updateStats)
+                const statsSpan = document.createElement('span');
+                statsSpan.className = 'stats';
+                statsSpan.dataset.domain = domain;
+
+                info.appendChild(domainSpan);
+                info.appendChild(statsSpan);
+
+                // "×" remove button
+                const rm = document.createElement('button');
+                rm.className = 'removeBtn';
+                rm.textContent = '×';
+                rm.title = 'Stop tracking';
+                rm.dataset.domain = domain;
+
+                // Using a named function for better reliability
+                rm.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Remove button clicked for:', this.dataset.domain);
+                    removeSite(this.dataset.domain);
+                    return false;
+                });
+
+                li.append(img, info, rm);
+                siteList.append(li);
+            });
+
+            // Do an initial stats update
+            updateStats();
+        }
+    );
+}
+
+// Only update the stats in existing list items
+function updateStats() {
+    chrome.storage.local.get(
+        ['tracked', 'logs', 'currentLoads'],
+        data => {
+            const logs = data.logs || [];
+            const currentLoads = data.currentLoads || {};
+            const now = Date.now();
+
+            // Get all stats elements in the DOM
+            const statsElements = document.querySelectorAll('.stats[data-domain]');
+
+            statsElements.forEach(statsElement => {
+                const domain = statsElement.dataset.domain;
+
                 // Calculate aggregates for each time window
                 const totals = {
                     h: getTimeInWindow(logs, domain, 'h', currentLoads[domain]),
@@ -144,69 +220,25 @@ function updateUI() {
                     `M ${formatDuration(totals.m)}`
                 ].join(' | ');
 
-                // Create list item
-                const li = document.createElement('li');
-
-                // Favicon with multiple fallbacks
-                const img = document.createElement('img');
-                img.className = 'favicon';
-                let step = 0;
-                const fallbacks = [
-                    icons[domain] || null,
-                    `chrome://favicon/?page_url=https://${domain}`,
-                    `chrome://favicon/?page_url=http://${domain}`,
-                    `https://${domain}/favicon.ico`,
-                    `http://${domain}/favicon.ico`
-                ];
-                img.onerror = () => {
-                    step++;
-                    if (fallbacks[step]) img.src = fallbacks[step];
-                };
-                img.src = fallbacks.find(src => !!src) || '';
-
-                // Domain + stats block
-                const info = document.createElement('div');
-                info.className = 'info';
-                info.innerHTML = `
-                    <span class="domain">${domain}</span>
-                    <span class="stats">${stats}</span>
-                `;
-
-                // "×" remove button - Now creates a standalone function for event handler
-                const rm = document.createElement('button');
-                rm.className = 'removeBtn';
-                rm.textContent = '×';
-                rm.title = 'Stop tracking';
-
-                // Using a named function for better reliability
-                function handleRemoveClick(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('Remove button clicked for:', domain); // Debug log
-                    removeSite(domain);
-                    return false;
-                }
-
-                rm.addEventListener('click', handleRemoveClick);
-
-                li.append(img, info, rm);
-                siteList.append(li);
+                // Update only the stats content
+                statsElement.textContent = stats;
             });
         }
     );
 }
 
 //
-// Kick off a continuous animation‐frame loop so you see live counts.
-// It'll also pick up completed loads the moment they're written.
+// Kick off a continuous animation‐frame loop to see live counts.
+// Now it only updates the stats, not the entire list.
 //
 function loop() {
     if (!running) return;
-    updateUI();
+    updateStats();
     requestAnimationFrame(loop);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    renderSiteList();
     loop();
 });
 
@@ -248,7 +280,7 @@ addBtn.addEventListener('click', () => {
                         { tracked, logs: pruned },
                         () => {
                             console.log('Storage updated after adding site');
-                            updateUI();
+                            renderSiteList(); // Re-render to show the new site
                         }
                     );
                 }
