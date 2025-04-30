@@ -9,16 +9,16 @@
     <div class="container">
         <header class="header">
             <h1>Tracked Sites</h1>
+            <p id="subtitle">
+                Load Time Over the Last Hour | Day | Week | Month
+            </p>
             <button id="addBtn" title="Add current site">＋</button>
+            <p id="totalStats"
+               style="font-size: 0.9em; color: #333; margin-top: 8px; display: none;">
+                H 0ms | D 0ms | W 0ms | M 0ms
+            </p>
         </header>
         <ul class="site-list" id="siteList"></ul>
-    </div>
-    <div id="header">
-        <h1>Load Time Tracker</h1>
-        <p id="subtitle"
-           style="font-size: 0.9em; color: #666; margin-top: -10px;">
-            Total Time Over the Last Hour | Day | Week | Month
-        </p>
     </div>
     <script src="popup.js"></script>
 </body>

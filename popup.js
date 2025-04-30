@@ -271,6 +271,53 @@ function updateStats() {
     );
 }
 
+function updateTotalStats() {
+    chrome.storage.local.get(['tracked', 'logs', 'currentLoads'], data => {
+        const tracked = data.tracked || [];
+        const logs = data.logs || [];
+        const currentLoads = data.currentLoads || {};
+        const now = Date.now();
+
+        // If no tracked sites, hide the total stats
+        const totalStatsElement = document.getElementById('totalStats');
+        if (tracked.length === 0) {
+            totalStatsElement.style.display = 'none';
+            return;
+        }
+
+        // Aggregate totals for all tracked sites
+        const totals = { h: 0, d: 0, w: 0, m: 0 };
+        tracked.forEach(domain => {
+            totals.h += getTimeInWindow(logs, domain, 'h', currentLoads[domain]);
+            totals.d += getTimeInWindow(logs, domain, 'd', currentLoads[domain]);
+            totals.w += getTimeInWindow(logs, domain, 'w', currentLoads[domain]);
+            totals.m += getTimeInWindow(logs, domain, 'm', currentLoads[domain]);
+
+            // Include live duration if the site is currently loading
+            const start = currentLoads[domain];
+            if (typeof start === 'number') {
+                const liveDuration = now - start;
+                totals.h += liveDuration;
+                totals.d += liveDuration;
+                totals.w += liveDuration;
+                totals.m += liveDuration;
+            }
+        });
+
+        // Format the totals
+        const stats = [
+            `H ${formatDuration(totals.h)}`,
+            `D ${formatDuration(totals.d)}`,
+            `W ${formatDuration(totals.w)}`,
+            `M ${formatDuration(totals.m)}`
+        ].join(' | ');
+
+        // Update the total stats element
+        totalStatsElement.textContent = stats;
+        totalStatsElement.style.display = 'block';
+    });
+}
+
 //
 // Kick off a continuous animation‐frame loop to see live counts.
 // Now it only updates the stats, not the entire list.
@@ -278,6 +325,7 @@ function updateStats() {
 function loop() {
     if (!running) return;
     updateStats();
+    updateTotalStats(); // Update the aggregated stats
     requestAnimationFrame(loop);
 }
 

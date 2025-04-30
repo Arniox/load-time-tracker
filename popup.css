@@ -10,9 +10,13 @@
 /* header with title + add button */
 .header {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
+    /* Stack title and subtitle vertically */
+    align-items: flex-start;
+    /* Align title and subtitle to the left */
     margin-bottom: 8px;
+    position: relative;
+    /* Allow positioning of the add button */
 }
 
 .header h1 {
@@ -21,7 +25,19 @@
     color: #333;
 }
 
+/* Subtitle styling */
+#subtitle {
+    font-size: 0.9em;
+    color: #666;
+    margin: 4px 0;
+    /* Minimal spacing above and below */
+}
+
+/* Position the add button to the top-right corner */
 #addBtn {
+    position: absolute;
+    top: 0;
+    right: 0;
     width: 24px;
     height: 24px;
     padding: 0px;
@@ -116,9 +132,21 @@
     /* darker red on hover */
 }
 
+/* Adjust subtitle styling */
 #subtitle {
     font-size: 0.9em;
     color: #666;
-    margin-top: -10px;
-    text-align: center;
+    margin: 4px 0 0;
+    /* Add spacing below the header */
+    text-align: left;
+    /* Align subtitle with the header */
+}
+
+/* Total stats styling */
+#totalStats {
+    font-size: 0.9em;
+    color: #333;
+    margin: 2px 0 6px;
+    /* Minimal spacing above, smaller spacing below */
+    text-align: left;
 }
