@@ -195,8 +195,14 @@ function renderSiteList() {
                 statsSpan.className = 'stats';
                 statsSpan.dataset.domain = domain;
 
+                // Add secondary stats containe for "Now" and "Avg"
+                const secondStatsSpan = document.createElement('span');
+                secondStatsSpan.className = 'secondary-stats';
+                secondStatsSpan.dataset.domain = domain;
+
                 info.appendChild(domainSpan);
                 info.appendChild(statsSpan);
+                info.appendChild(secondStatsSpan);
 
                 // "×" remove button
                 const rm = document.createElement('button');
@@ -234,6 +240,7 @@ function updateStats() {
 
             // Get all stats elements in the DOM
             const statsElements = document.querySelectorAll('.stats[data-domain]');
+            const secondStatsElements = document.querySelectorAll('.secondary-stats[data-domain]');
 
             statsElements.forEach(statsElement => {
                 const domain = statsElement.dataset.domain;
@@ -246,14 +253,20 @@ function updateStats() {
                     m: getTimeInWindow(logs, domain, 'm', currentLoads[domain])
                 };
 
-                // If there's a start time still open, include it in the totals
-                const start = currentLoads[domain];
-                if (typeof start === 'number') {
-                    const liveDuration = now - start;
-                    totals.h += liveDuration;
-                    totals.d += liveDuration;
-                    totals.w += liveDuration;
-                    totals.m += liveDuration;
+                // Include live duration for all tabs of the domain
+                const domainLoads = currentLoads[domain];
+                let nowTime = 0;
+                if (domainLoads) {
+                    Object.values(domainLoads).forEach(startTime => {
+                        if (typeof startTime === 'number') {
+                            const liveDuration = now - startTime;
+                            nowTime += liveDuration;
+                            totals.h += liveDuration;
+                            totals.d += liveDuration;
+                            totals.w += liveDuration;
+                            totals.m += liveDuration;
+                        }
+                    });
                 }
 
                 // Build the stats line
@@ -266,6 +279,18 @@ function updateStats() {
 
                 // Update only the stats content
                 statsElement.textContent = stats;
+
+                // Update secondary stats for "Now" and "Avg"
+                const domainLogs = logs.filter(r => r.domain === domain);
+                const avgTime = domainLogs.length > 0
+                    ? domainLogs.reduce((sum, r) => sum + (r.loadTime || 0), 0) / domainLogs.length
+                    : 0;
+
+                const secondaryStats = `Now ${formatDuration(nowTime)} | Avg ${formatDuration(avgTime)}`;
+                const secondStatsElement = Array.from(secondStatsElements).find(el => el.dataset.domain === domain);
+                if (secondStatsElement) {
+                    secondStatsElement.textContent = secondaryStats;
+                }
             });
         }
     );
@@ -293,14 +318,18 @@ function updateTotalStats() {
             totals.w += getTimeInWindow(logs, domain, 'w', currentLoads[domain]);
             totals.m += getTimeInWindow(logs, domain, 'm', currentLoads[domain]);
 
-            // Include live duration if the site is currently loading
-            const start = currentLoads[domain];
-            if (typeof start === 'number') {
-                const liveDuration = now - start;
-                totals.h += liveDuration;
-                totals.d += liveDuration;
-                totals.w += liveDuration;
-                totals.m += liveDuration;
+            // Include live duration for all tabs of the domain
+            const domainLoads = currentLoads[domain];
+            if (domainLoads) {
+                Object.values(domainLoads).forEach(startTime => {
+                    if (typeof startTime === 'number') {
+                        const liveDuration = now - startTime;
+                        totals.h += liveDuration;
+                        totals.d += liveDuration;
+                        totals.w += liveDuration;
+                        totals.m += liveDuration;
+                    }
+                });
             }
         });
 
