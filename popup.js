@@ -20,6 +20,46 @@ function formatDuration(ms) {
 }
 
 //
+// Get time aggregates for a specific time window
+//
+function getTimeInWindow(logs, domain, windowType, currentValue) {
+    const now = Date.now();
+
+    // Get current window values
+    const currentHour = Math.floor(now / (60 * 60 * 1000));
+    const currentDay = Math.floor(now / (24 * 60 * 60 * 1000));
+    const currentWeek = Math.floor(now / (7 * 24 * 60 * 60 * 1000));
+    const currentMonth = Math.floor(now / (30 * 24 * 60 * 60 * 1000));
+
+    // Filter logs for the specific domain and time window
+    return logs
+        .filter(r => {
+            if (r.domain !== domain) return false;
+
+            switch (windowType) {
+                case 'h':
+                    return r.hourWindow === currentHour;
+                case 'd':
+                    return r.dayWindow === currentDay;
+                case 'w':
+                    return r.weekWindow === currentWeek;
+                case 'm':
+                    return r.monthWindow === currentMonth;
+                default:
+                    // Fallback to traditional time-based filtering
+                    const windowMaps = {
+                        h: 60 * 60 * 1000,
+                        d: 24 * 60 * 60 * 1000,
+                        w: 7 * 24 * 60 * 60 * 1000,
+                        m: 30 * 24 * 60 * 60 * 1000
+                    };
+                    return (now - r.timestamp) <= windowMaps[windowType];
+            }
+        })
+        .reduce((sum, r) => sum + (r.loadTime || 0), 0);
+}
+
+//
 // Rebuild the popup list—combining saved logs + any in-flight load.
 //
 function updateUI() {
@@ -35,30 +75,22 @@ function updateUI() {
             siteList.innerHTML = '';
 
             tracked.forEach(domain => {
-                // Gather only this domain’s past logs
-                const recs = logs.filter(r => r.domain === domain);
-
-                // Define your sliding windows
-                const windows = {
-                    h: 60 * 60 * 1000,
-                    d: 24 * 60 * 60 * 1000,
-                    w: 7 * 24 * 60 * 60 * 1000,
-                    m: 30 * 24 * 60 * 60 * 1000
+                // Calculate aggregates for each time window
+                const totals = {
+                    h: getTimeInWindow(logs, domain, 'h', currentLoads[domain]),
+                    d: getTimeInWindow(logs, domain, 'd', currentLoads[domain]),
+                    w: getTimeInWindow(logs, domain, 'w', currentLoads[domain]),
+                    m: getTimeInWindow(logs, domain, 'm', currentLoads[domain])
                 };
 
-                // Sum each window + add live delta if in-flight
-                const totals = {};
-                for (const [k, span] of Object.entries(windows)) {
-                    let sum = recs
-                        .filter(r => now - r.timestamp <= span)
-                        .reduce((a, r) => a + (r.loadTime || 0), 0);
-
-                    // If there’s a start time still open, include it
-                    const start = currentLoads[domain];
-                    if (typeof start === 'number' && (now - start) <= span) {
-                        sum += (now - start);
-                    }
-                    totals[k] = sum;
+                // If there's a start time still open, include it in the totals
+                const start = currentLoads[domain];
+                if (typeof start === 'number') {
+                    const liveDuration = now - start;
+                    totals.h += liveDuration;
+                    totals.d += liveDuration;
+                    totals.w += liveDuration;
+                    totals.m += liveDuration;
                 }
 
                 // Build the stats line
@@ -97,25 +129,14 @@ function updateUI() {
           <span class="stats">${stats}</span>
         `;
 
-                // “×” remove button
+                // "×" remove button
                 const rm = document.createElement('button');
                 rm.className = 'removeBtn';
                 rm.textContent = '×';
                 rm.title = 'Stop tracking';
-                rm.addEventListener('click', () => {
-                    chrome.storage.local.get(
-                        ['tracked', 'logs', 'currentLoads'],
-                        d => {
-                            const t = (d.tracked || []).filter(x => x !== domain);
-                            const l = (d.logs || []).filter(r => r.domain !== domain);
-                            const c = { ...(d.currentLoads || {}) };
-                            delete c[domain];
-                            chrome.storage.local.set(
-                                { tracked: t, logs: l, currentLoads: c },
-                                updateUI
-                            );
-                        }
-                    );
+                rm.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent event bubbling
+                    removeSite(domain);
                 });
 
                 li.append(img, info, rm);
@@ -125,9 +146,37 @@ function updateUI() {
     );
 }
 
+// Function to properly remove a site from tracking
+function removeSite(domain) {
+    chrome.storage.local.get(
+        ['tracked', 'logs', 'currentLoads', 'icons'],
+        data => {
+            // Filter out the domain from the tracked list
+            const tracked = (data.tracked || []).filter(x => x !== domain);
+
+            // Filter out all logs for this domain
+            const logs = (data.logs || []).filter(r => r.domain !== domain);
+
+            // Remove any in-flight loads
+            const currentLoads = { ...(data.currentLoads || {}) };
+            delete currentLoads[domain];
+
+            // Remove icon if stored
+            const icons = { ...(data.icons || {}) };
+            delete icons[domain];
+
+            // Update storage with all the cleaned data
+            chrome.storage.local.set(
+                { tracked, logs, currentLoads, icons },
+                updateUI
+            );
+        }
+    );
+}
+
 //
 // Kick off a continuous animation‐frame loop so you see live counts.
-// It’ll also pick up completed loads the moment they’re written.
+// It'll also pick up completed loads the moment they're written.
 //
 function loop() {
     if (!running) return;
@@ -139,32 +188,31 @@ document.addEventListener('DOMContentLoaded', () => loop());
 window.addEventListener('unload', () => { running = false; });
 
 //
-// “+” button: add the current domain to `tracked` and prime its
-// in-flight start so you see the live count immediately.
+// "+" button: add the current domain to `tracked` but don't start counting yet
 //
 addBtn.addEventListener('click', () => {
-    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
     chrome.tabs.query(
         { active: true, currentWindow: true },
         tabs => {
             if (!tabs[0]?.url) return;
             const domain = new URL(tabs[0].url).hostname;
             chrome.storage.local.get(
-                ['tracked', 'logs', 'currentLoads'],
+                ['tracked', 'logs'],
                 data => {
-                    const t = data.tracked || [];
-                    const l = data.logs || [];
-                    const c = data.currentLoads || {};
+                    const tracked = data.tracked || [];
+                    const logs = data.logs || [];
 
-                    if (!t.includes(domain)) {
-                        t.push(domain);
-                        c[domain] = Date.now();       // start live count now
+                    // Only add if not already tracking
+                    if (!tracked.includes(domain)) {
+                        tracked.push(domain);
                     }
-                    // prune old logs
-                    const pruned = l.filter(r => r.timestamp >= cutoff);
+
+                    // Prune old logs
+                    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+                    const pruned = logs.filter(r => r.timestamp >= cutoff);
 
                     chrome.storage.local.set(
-                        { tracked: t, logs: pruned, currentLoads: c },
+                        { tracked: tracked, logs: pruned },
                         updateUI
                     );
                 }
