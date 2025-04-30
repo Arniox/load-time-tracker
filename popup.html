@@ -1,12 +1,18 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8" />
+    <title>Load Time Tracker</title>
     <link href="popup.css" rel="stylesheet" />
 </head>
 <body>
-    <h2>Tracked Sites</h2>
-    <ul id="siteList"></ul>
-    <button id="addBtn">+</button>
+    <div class="container">
+        <header>
+            <h1>Tracked Sites</h1>
+        </header>
+        <ul class="site-list" id="siteList"></ul>
+        <button id="addBtn" title="Add current site">＋</button>
+    </div>
     <script src="popup.js"></script>
 </body>
 </html>

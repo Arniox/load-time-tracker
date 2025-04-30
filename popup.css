@@ -1,28 +1,84 @@
-body {
-    font-family: sans-serif;
-    width: 300px;
-    padding: 10px;
+/* container & overall sizing */
+.container {
+    position: relative;
+    width: 260px;
+    padding: 12px;
+    font-family: Arial, sans-serif;
 }
 
-#siteList {
+/* header & title */
+header h1 {
+    font-size: 16px;
+    margin: 0 0 8px;
+    font-weight: normal;
+    color: #333;
+}
+
+/* list styling */
+.site-list {
     list-style: none;
+    margin: 0;
     padding: 0;
+    max-height: 300px;
+    overflow-y: auto;
 }
 
-.siteItem {
+.site-list li {
     display: flex;
     align-items: center;
-    margin-bottom: 8px;
+    justify-content: space-between;
+    background: #f5f5f5;
+    border-radius: 4px;
+    padding: 6px 8px;
+    margin-bottom: 6px;
 }
 
-.siteItem img {
-    width: 16px;
-    height: 16px;
+/* favicon + domain grouping */
+.site-list .siteInfo {
+    display: flex;
+    align-items: center;
+    flex: 1;
+}
+
+.site-list img.favicon {
+    width: 20px;
+    height: 20px;
     margin-right: 8px;
+    border-radius: 3px;
 }
 
-.stats {
-    margin-left: auto;
-    text-align: right;
-    font-size: 0.9em;
+.site-list .domain {
+    font-size: 14px;
+    color: #222;
+    word-break: break-all;
+}
+
+/* stats text */
+.site-list .stats {
+    font-size: 12px;
+    color: #555;
+    white-space: nowrap;
+    margin-left: 8px;
+}
+
+/* modern plus button */
+#addBtn {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 50%;
+    background-color: #4CAF50;
+    color: #fff;
+    font-size: 18px;
+    line-height: 0;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.2s;
+}
+
+#addBtn:hover {
+    background-color: #45A049;
 }
