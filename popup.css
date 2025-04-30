@@ -1,16 +1,15 @@
-/* container & overall sizing */
+/* overall container */
 .container {
-    position: relative;
     width: 260px;
     padding: 12px;
     font-family: Arial, sans-serif;
+    box-sizing: border-box;
 }
 
-/* header & title */
+/* header */
 header h1 {
-    font-size: 16px;
+    font-size: 14px;
     margin: 0 0 8px;
-    font-weight: normal;
     color: #333;
 }
 
@@ -26,42 +25,47 @@ header h1 {
 .site-list li {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    background: #f5f5f5;
+    background: #FAFAFA;
+    border: 1px solid #E0E0E0;
     border-radius: 4px;
-    padding: 6px 8px;
-    margin-bottom: 6px;
+    padding: 8px;
+    margin-bottom: 8px;
 }
 
-/* favicon + domain grouping */
-.site-list .siteInfo {
-    display: flex;
-    align-items: center;
-    flex: 1;
-}
-
-.site-list img.favicon {
+/* favicon */
+.favicon {
     width: 20px;
     height: 20px;
-    margin-right: 8px;
     border-radius: 3px;
+    flex-shrink: 0;
 }
 
-.site-list .domain {
+/* text column */
+.info {
+    display: flex;
+    flex-direction: column;
+    margin-left: 10px;
+    overflow: hidden;
+}
+
+/* domain line */
+.domain {
     font-size: 14px;
     color: #222;
-    word-break: break-all;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-/* stats text */
-.site-list .stats {
+/* stats line under domain */
+.stats {
     font-size: 12px;
     color: #555;
+    margin-top: 4px;
     white-space: nowrap;
-    margin-left: 8px;
 }
 
-/* modern plus button */
+/* green circular "+" button */
 #addBtn {
     position: absolute;
     bottom: 12px;
@@ -73,7 +77,7 @@ header h1 {
     background-color: #4CAF50;
     color: #fff;
     font-size: 18px;
-    line-height: 0;
+    line-height: 1;
     cursor: pointer;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     transition: background-color 0.2s;

@@ -1,22 +1,20 @@
 const siteList = document.getElementById('siteList');
 const addBtn = document.getElementById('addBtn');
 
-// Re-render the list
 async function refresh() {
     const { logs = [] } = await chrome.storage.local.get('logs');
     const now = Date.now();
 
-    // Group logs by domain
+    // group by domain
     const byDomain = logs.reduce((acc, r) => {
         (acc[r.domain] ||= []).push(r);
         return acc;
     }, {});
 
     siteList.innerHTML = '';
-    for (const [domain, records] of Object.entries(byDomain)) {
-        const iconUrl = `chrome://favicon/?page_url=https://${domain}`;
 
-        // compute totals for each window
+    for (const [domain, records] of Object.entries(byDomain)) {
+        // compute totals
         const windows = {
             h: 60 * 60 * 1000,
             d: 24 * 60 * 60 * 1000,
@@ -32,31 +30,46 @@ async function refresh() {
                     .toFixed(0)
             ])
         );
-
-        // build one-line stats
         const statsText = `H ${totals.h}ms | D ${totals.d}ms | W ${totals.w}ms | M ${totals.m}ms`;
 
-        // create list item
+        // build list item
         const li = document.createElement('li');
-        li.innerHTML = `
-      <div class="siteInfo">
-        <img src="${iconUrl}" class="favicon">
-        <span class="domain">${domain}</span>
-      </div>
-      <div class="stats">${statsText}</div>`;
-        siteList.appendChild(li);
+
+        // favicon with https→http fallback
+        const img = document.createElement('img');
+        img.className = 'favicon';
+        img.src = `chrome://favicon/?page_url=https://${domain}`;
+        img.onerror = () => {
+            img.onerror = null;
+            img.src = `chrome://favicon/?page_url=http://${domain}`;
+        };
+
+        // text info
+        const info = document.createElement('div');
+        info.className = 'info';
+
+        const domainSpan = document.createElement('span');
+        domainSpan.className = 'domain';
+        domainSpan.textContent = domain;
+
+        const statsDiv = document.createElement('div');
+        statsDiv.className = 'stats';
+        statsDiv.textContent = statsText;
+
+        info.append(domainSpan, statsDiv);
+        li.append(img, info);
+        siteList.append(li);
     }
 }
 
-// Add the current tab’s domain
+// add current tab
 addBtn.addEventListener('click', async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     const domain = new URL(tab.url).hostname;
+    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
 
     chrome.storage.local.get({ logs: [] }, ({ logs }) => {
         logs.push({ domain, timestamp: Date.now(), loadTime: 0 });
-        // prune older than 30d
-        const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
         const pruned = logs.filter(r => r.timestamp >= cutoff);
         chrome.storage.local.set({ logs: pruned }, refresh);
     });
