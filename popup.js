@@ -59,6 +59,68 @@ function getTimeInWindow(logs, domain, windowType, currentValue) {
         .reduce((sum, r) => sum + (r.loadTime || 0), 0);
 }
 
+// Function to create and append a favicon image element
+function createFaviconElement(domain, icons) {
+    const img = document.createElement('img');
+    img.className = 'favicon';
+    img.alt = domain;
+
+    // Default to a placeholder icon - this will show when all icon loading attempts fail
+    const defaultIcon = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23ddd"/><text x="50%" y="50%" font-family="Arial" font-size="40" fill="%23555" text-anchor="middle" dominant-baseline="central">' + domain.charAt(0).toUpperCase() + '</text></svg>';
+
+    // Try to load favicon using a better approach
+    const iconUrl = icons[domain];
+
+    if (iconUrl) {
+        // Use stored icon if available
+        img.src = iconUrl;
+
+        // Set fallback if stored icon fails
+        img.onerror = () => {
+            tryFaviconFallbacks(img, domain, defaultIcon);
+        };
+    } else {
+        // Try fallbacks immediately if no stored icon
+        tryFaviconFallbacks(img, domain, defaultIcon);
+    }
+
+    return img;
+}
+
+// Helper function to attempt fallback favicon sources with proper error handling
+function tryFaviconFallbacks(img, domain, defaultIcon) {
+    // Build an array of potential favicon URLs to try
+    const fallbacks = [
+        // Try standard favicon paths
+        `https://${domain}/favicon.ico`,
+        `https://${domain}/favicon.png`,
+        `https://${domain}/apple-touch-icon.png`,
+        // Try common paths for assets
+        `https://${domain}/assets/favicon.ico`,
+        `https://${domain}/static/favicon.ico`,
+        `https://${domain}/images/favicon.ico`,
+        // If all else fails, use our default
+        defaultIcon
+    ];
+
+    // Start with the first fallback
+    let currentFallback = 0;
+
+    // Function to try the next fallback
+    function tryNextFallback() {
+        if (currentFallback < fallbacks.length) {
+            img.src = fallbacks[currentFallback];
+            currentFallback++;
+        }
+    }
+
+    // Configure error handler for fallbacks
+    img.onerror = tryNextFallback;
+
+    // Start the fallback process
+    tryNextFallback();
+}
+
 // Function to properly remove a site from tracking
 function removeSite(domain) {
     console.log(`Removing site: ${domain}`); // Debug log
@@ -119,22 +181,8 @@ function renderSiteList() {
                 const li = document.createElement('li');
                 li.dataset.domain = domain;
 
-                // Favicon with multiple fallbacks
-                const img = document.createElement('img');
-                img.className = 'favicon';
-                let step = 0;
-                const fallbacks = [
-                    icons[domain] || null,
-                    `chrome://favicon/?page_url=https://${domain}`,
-                    `chrome://favicon/?page_url=http://${domain}`,
-                    `https://${domain}/favicon.ico`,
-                    `http://${domain}/favicon.ico`
-                ];
-                img.onerror = () => {
-                    step++;
-                    if (fallbacks[step]) img.src = fallbacks[step];
-                };
-                img.src = fallbacks.find(src => !!src) || '';
+                // Favicon with robust fallback handling
+                const img = createFaviconElement(domain, icons);
 
                 // Domain + stats block
                 const info = document.createElement('div');
