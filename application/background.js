@@ -114,3 +114,11 @@ chrome.webNavigation.onCompleted.addListener(details => {
         });
     });
 });
+
+chrome.tabs.onActivated.addListener(() => {
+    chrome.action.setBadgeText({ text: '' }); // Clear the badge
+});
+
+chrome.tabs.onRemoved.addListener(() => {
+    chrome.action.setBadgeText({ text: '' }); // Clear the badge
+});
