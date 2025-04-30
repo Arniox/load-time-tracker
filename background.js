@@ -14,6 +14,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(details => {
     chrome.storage.local.get(
         { tracked: [], currentLoads: {} },
         data => {
+            // Only track if the domain is already being tracked (not first time)
             if (!data.tracked.includes(domain)) return;
             data.currentLoads[domain] = Date.now();
             chrome.storage.local.set({ currentLoads: data.currentLoads });
@@ -36,6 +37,12 @@ chrome.webNavigation.onCompleted.addListener(details => {
                 return;
             }
 
+            // If there's no start time, this might be the first load after adding the site
+            // In that case, we don't want to track this load
+            if (!currentLoads[domain]) {
+                return;
+            }
+
             // Attempt high-precision timing via the Performance API
             chrome.scripting.executeScript({
                 target: { tabId: details.tabId },
@@ -48,7 +55,7 @@ chrome.webNavigation.onCompleted.addListener(details => {
 
                 // Fallback: use our own timestamp if Performance API returned null
                 if (loadTime == null) {
-                    const start = data.currentLoads[domain];
+                    const start = currentLoads[domain];
                     loadTime = typeof start === 'number'
                         ? Date.now() - start
                         : null;
@@ -64,14 +71,18 @@ chrome.webNavigation.onCompleted.addListener(details => {
                     pruned.push({
                         domain,
                         timestamp: Date.now(),
-                        loadTime
+                        loadTime,
+                        hourWindow: Math.floor(Date.now() / (60 * 60 * 1000)),
+                        dayWindow: Math.floor(Date.now() / (24 * 60 * 60 * 1000)),
+                        weekWindow: Math.floor(Date.now() / (7 * 24 * 60 * 60 * 1000)),
+                        monthWindow: Math.floor(Date.now() / (30 * 24 * 60 * 60 * 1000))
                     });
                     chrome.storage.local.set({ logs: pruned });
                 }
             }).catch(() => {
                 // In the unlikely event scripting.executeScript fails,
                 // fall back to our own timestamp diff:
-                const start = data.currentLoads[domain];
+                const start = currentLoads[domain];
                 const loadTime = typeof start === 'number'
                     ? (Date.now() - start)
                     : null;
@@ -84,7 +95,11 @@ chrome.webNavigation.onCompleted.addListener(details => {
                     pruned.push({
                         domain,
                         timestamp: Date.now(),
-                        loadTime
+                        loadTime,
+                        hourWindow: Math.floor(Date.now() / (60 * 60 * 1000)),
+                        dayWindow: Math.floor(Date.now() / (24 * 60 * 60 * 1000)),
+                        weekWindow: Math.floor(Date.now() / (7 * 24 * 60 * 60 * 1000)),
+                        monthWindow: Math.floor(Date.now() / (30 * 24 * 60 * 60 * 1000))
                     });
                     chrome.storage.local.set({ logs: pruned });
                 }
