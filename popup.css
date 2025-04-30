@@ -1,6 +1,6 @@
 /* container */
 .container {
-    width: 300px;
+    width: 350px;
     overflow: hidden;
     padding: 12px;
     font-family: Arial, sans-serif;
@@ -43,6 +43,7 @@
 /* list styling */
 .site-list {
     list-style: none;
+    overflow: hidden;
     margin: 0;
     padding: 0;
     max-height: 300px;

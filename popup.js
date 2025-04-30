@@ -314,8 +314,6 @@ addBtn.addEventListener('click', () => {
             const pruned = logs.filter(r => r.timestamp >= cutoff);
 
             chrome.storage.local.set({ tracked, logs: pruned }, () => {
-                renderSiteList(); // Re-render to show the new site
-
                 // Dynamically execute content.js to scrape the favicon
                 chrome.scripting.executeScript({
                     target: { tabId: tabs[0].id },
@@ -330,4 +328,11 @@ addBtn.addEventListener('click', () => {
             });
         });
     });
+});
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'favicon-scraped') {
+        console.log(`Favicon scraping complete for domain: ${message.domain}`);
+        renderSiteList(); // Re-render the site list to include the new favicon
+    }
 });

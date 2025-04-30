@@ -42,9 +42,13 @@
         if (faviconUrl) {
             console.log(`Storing favicon for ${domain}: ${faviconUrl}`);
             icons[domain] = faviconUrl;
-            chrome.storage.local.set({ icons });
+            chrome.storage.local.set({ icons }, () => {
+                // Notify that favicon scraping is complete
+                chrome.runtime.sendMessage({ type: 'favicon-scraped', domain });
+            });
         } else {
             console.log(`No favicon found for ${domain}`);
+            chrome.runtime.sendMessage({ type: 'favicon-scraped', domain });
         }
     });
 })();
