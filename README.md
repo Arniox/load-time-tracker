@@ -99,7 +99,7 @@ YourRepo/
   - `scripting`
   - Host access to `<all_urls>` for pages you choose to track.
 
-See our full [Privacy Policy](https://YourUser.github.io/YourRepo/privacy.html) for details.
+See our full [Privacy Policy](https://arniox.github.io/load-time-tracker/privacy.html) for details.
 
 ---
 
