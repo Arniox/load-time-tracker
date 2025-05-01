@@ -254,12 +254,22 @@ function updateStats() {
             const recentLoads = data.recentLoads || {};
             const now = Date.now();
 
-            // Get all stats elements in the DOM
-            const statsElements = document.querySelectorAll('.stats[data-domain]');
-            const secondStatsElements = document.querySelectorAll('.secondary-stats[data-domain]');
+            // Cache stats elements to avoid repeated DOM queries
+            const statsElements = new Map();
+            document.querySelectorAll('.stats[data-domain]').forEach(el => {
+                statsElements.set(el.dataset.domain, el);
+            });
 
-            statsElements.forEach(statsElement => {
-                const domain = statsElement.dataset.domain;
+            const secondStatsElements = new Map();
+            document.querySelectorAll('.secondary-stats[data-domain]').forEach(el => {
+                secondStatsElements.set(el.dataset.domain, el);
+            });
+
+            data.tracked.forEach(domain => {
+                const statsElement = statsElements.get(domain);
+                const secondStatsElement = secondStatsElements.get(domain);
+
+                if (!statsElement || !secondStatsElement) return;
 
                 // Calculate aggregates for each time window
                 const totals = {
@@ -304,10 +314,7 @@ function updateStats() {
                 const reloadCount = domainLogs.length;
 
                 const secondaryStats = `Now ${formatDuration(nowTime)} | Avg ${formatDuration(avgTime)} | Reloads ${reloadCount}`;
-                const secondStatsElement = Array.from(secondStatsElements).find(el => el.dataset.domain === domain);
-                if (secondStatsElement) {
-                    secondStatsElement.textContent = secondaryStats;
-                }
+                secondStatsElement.textContent = secondaryStats;
             });
         }
     );
