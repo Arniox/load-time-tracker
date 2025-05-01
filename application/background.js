@@ -36,7 +36,22 @@ chrome.webNavigation.onBeforeNavigate.addListener(details => {
 
             // Start the badge counter
             chrome.action.setBadgeBackgroundColor({ color: '#87CEEB' }); // Light blue color for better visibility
-            chrome.action.setBadgeText({ text: '' }); // Placeholder while loading
+
+            // Start live badge updates
+            const startTime = currentLoads[domain][details.tabId];
+            const updateBadge = () => {
+                const now = Date.now();
+                const elapsed = now - startTime;
+                chrome.action.setBadgeText({ text: formatDuration(elapsed) });
+
+                // Continue updating until navigation completes
+                chrome.storage.local.get({ currentLoads: {} }, updatedData => {
+                    if (updatedData.currentLoads[domain]?.[details.tabId]) {
+                        setTimeout(updateBadge, 500); // Update every 500ms
+                    }
+                });
+            };
+            updateBadge();
 
             // Atomically update currentLoads
             chrome.storage.local.set({ currentLoads });
