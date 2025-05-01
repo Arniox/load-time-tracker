@@ -6,6 +6,18 @@ function pruneOldLogs(logs) {
     return logs.filter(r => r.timestamp >= cutoff);
 }
 
+function formatDuration(ms) {
+    if (typeof ms !== 'number' || isNaN(ms)) return '0ms';
+    if (ms < 1000) return `${Math.round(ms)}ms`; // Round ms to the nearest integer
+    const s = ms / 1000;
+    if (ms < 10000) return `${s.toFixed(2)}s`;
+    if (ms < 60000) return `${Math.round(s)}s`;
+    const m = ms / 60000;
+    if (ms < 3600000) return `${Math.round(m)}m`;
+    const h = ms / 3600000;
+    return `${Math.round(h)}h`;
+}
+
 // 1) On navigation start, stamp the timestamp for live counting
 chrome.webNavigation.onBeforeNavigate.addListener(details => {
     if (details.frameId !== 0) return; // Ignore subframes
@@ -23,8 +35,8 @@ chrome.webNavigation.onBeforeNavigate.addListener(details => {
             currentLoads[domain][details.tabId] = Date.now(); // Store timestamp per tab ID
 
             // Start the badge counter
-            chrome.action.setBadgeBackgroundColor({ color: '#007bff' }); // Blue pill color
-            chrome.action.setBadgeText({ text: '...' }); // Placeholder while loading
+            chrome.action.setBadgeBackgroundColor({ color: '#87CEEB' }); // Light blue color for better visibility
+            chrome.action.setBadgeText({ text: '' }); // Placeholder while loading
 
             // Atomically update currentLoads
             chrome.storage.local.set({ currentLoads });
@@ -87,8 +99,8 @@ chrome.webNavigation.onCompleted.addListener(details => {
             chrome.storage.local.set({ currentLoads, logs: pruned, recentLoads });
 
             // Update the badge with the final "Now" time
-            chrome.action.setBadgeBackgroundColor({ color: '#007bff' }); // Blue pill color
-            chrome.action.setBadgeText({ text: `${Math.round(loadTime / 1000)}s` }); // Show time in seconds
+            chrome.action.setBadgeBackgroundColor({ color: '#87CEEB' }); // Blue pill color
+            chrome.action.setBadgeText({ text: `${formatDuration(loadTime)}` }); // Show time in seconds
         }).catch(() => {
             // In the unlikely event scripting.executeScript fails,
             // fall back to our own timestamp diff:
@@ -117,8 +129,8 @@ chrome.webNavigation.onCompleted.addListener(details => {
             chrome.storage.local.set({ currentLoads, logs: pruned, recentLoads });
 
             // Update the badge with the fallback "Now" time
-            chrome.action.setBadgeBackgroundColor({ color: '#007bff' }); // Blue pill color
-            chrome.action.setBadgeText({ text: `${Math.round(loadTime / 1000)}s` }); // Show time in seconds
+            chrome.action.setBadgeBackgroundColor({ color: '#87CEEB' }); // Blue pill color
+            chrome.action.setBadgeText({ text: `${formatDuration(loadTime)}` }); // Show time in seconds
         });
     });
 });
