@@ -171,56 +171,71 @@ function renderSiteList() {
             const icons = data.icons || {};
             const currentLoads = data.currentLoads || {};
 
-            siteList.innerHTML = '';
+            // Use a Map to track existing list items
+            const existingItems = new Map();
+            siteList.querySelectorAll('li').forEach(li => {
+                existingItems.set(li.dataset.domain, li);
+            });
 
             tracked.forEach(domain => {
-                // Create list item
-                const li = document.createElement('li');
-                li.dataset.domain = domain;
+                let li = existingItems.get(domain);
 
-                // Favicon with robust fallback handling
-                const img = createFaviconElement(domain, icons);
+                if (!li) {
+                    // Create a new list item if it doesn't exist
+                    li = document.createElement('li');
+                    li.dataset.domain = domain;
 
-                // Domain + stats block
-                const info = document.createElement('div');
-                info.className = 'info';
+                    // Favicon with robust fallback handling
+                    const img = createFaviconElement(domain, icons);
 
-                // Add domain
-                const domainSpan = document.createElement('span');
-                domainSpan.className = 'domain';
-                domainSpan.textContent = domain;
+                    // Domain + stats block
+                    const info = document.createElement('div');
+                    info.className = 'info';
 
-                // Add stats container (will be updated by updateStats)
-                const statsSpan = document.createElement('span');
-                statsSpan.className = 'stats';
-                statsSpan.dataset.domain = domain;
+                    // Add domain
+                    const domainSpan = document.createElement('span');
+                    domainSpan.className = 'domain';
+                    domainSpan.textContent = domain;
 
-                // Add secondary stats containe for "Now" and "Avg"
-                const secondStatsSpan = document.createElement('span');
-                secondStatsSpan.className = 'secondary-stats';
-                secondStatsSpan.dataset.domain = domain;
+                    // Add stats container (will be updated by updateStats)
+                    const statsSpan = document.createElement('span');
+                    statsSpan.className = 'stats';
+                    statsSpan.dataset.domain = domain;
 
-                info.appendChild(domainSpan);
-                info.appendChild(statsSpan);
-                info.appendChild(secondStatsSpan);
+                    // Add secondary stats container for "Now" and "Avg"
+                    const secondStatsSpan = document.createElement('span');
+                    secondStatsSpan.className = 'secondary-stats';
+                    secondStatsSpan.dataset.domain = domain;
 
-                // "×" remove button
-                const rm = document.createElement('button');
-                rm.className = 'removeBtn';
-                rm.textContent = '×';
-                rm.title = 'Stop tracking';
-                rm.dataset.domain = domain;
+                    info.appendChild(domainSpan);
+                    info.appendChild(statsSpan);
+                    info.appendChild(secondStatsSpan);
 
-                // Using a named function for better reliability
-                rm.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    removeSite(this.dataset.domain);
-                    return false;
-                });
+                    // "×" remove button
+                    const rm = document.createElement('button');
+                    rm.className = 'removeBtn';
+                    rm.textContent = '×';
+                    rm.title = 'Stop tracking';
+                    rm.dataset.domain = domain;
 
-                li.append(img, info, rm);
-                siteList.append(li);
+                    rm.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        removeSite(this.dataset.domain);
+                        return false;
+                    });
+
+                    li.append(img, info, rm);
+                    siteList.append(li);
+                }
+
+                // Remove from the map to track which items are still valid
+                existingItems.delete(domain);
+            });
+
+            // Remove any items that are no longer tracked
+            existingItems.forEach((li, domain) => {
+                li.remove();
             });
 
             // Do an initial stats update
