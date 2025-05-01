@@ -10,8 +10,7 @@ function formatDuration(ms) {
     if (typeof ms !== 'number' || isNaN(ms)) return '0ms';
     if (ms < 1000) return `${Math.round(ms)}ms`; // Round ms to the nearest integer
     const s = ms / 1000;
-    if (ms < 10000) return `${s.toFixed(2)}s`;
-    if (ms < 60000) return `${Math.round(s)}s`;
+    if (ms < 60000) return `${s.toFixed(1)}s`;
     const m = ms / 60000;
     if (ms < 3600000) return `${Math.round(m)}m`;
     const h = ms / 3600000;
@@ -56,7 +55,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(details => {
                         clearInterval(intervalId); // Stop updating if navigation is complete
                     }
                 });
-            }, 500); // Update every 500ms
+            }, 100); // Update every 100ms (since the formatDuration for this is set to fixed 1 decimal place)
 
             // Atomically update currentLoads and recentLoads
             chrome.storage.local.set({ currentLoads, recentLoads });
