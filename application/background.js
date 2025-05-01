@@ -114,8 +114,7 @@ chrome.webNavigation.onCompleted.addListener(details => {
             chrome.storage.local.set({ currentLoads, logs: pruned, recentLoads });
 
             // Update the badge with the final "Now" time
-            chrome.action.setBadgeBackgroundColor({ color: '#87CEEB' }); // Blue pill color
-            chrome.action.setBadgeText({ text: `${formatDuration(loadTime)}` }); // Show time in seconds
+            chrome.action.setBadgeText({ text: formatDuration(loadTime) }); // Show final load time
         }).catch(() => {
             // In the unlikely event scripting.executeScript fails,
             // fall back to our own timestamp diff:
@@ -144,8 +143,7 @@ chrome.webNavigation.onCompleted.addListener(details => {
             chrome.storage.local.set({ currentLoads, logs: pruned, recentLoads });
 
             // Update the badge with the fallback "Now" time
-            chrome.action.setBadgeBackgroundColor({ color: '#87CEEB' }); // Blue pill color
-            chrome.action.setBadgeText({ text: `${formatDuration(loadTime)}` }); // Show time in seconds
+            chrome.action.setBadgeText({ text: formatDuration(loadTime) }); // Show final load time
         });
     });
 });
