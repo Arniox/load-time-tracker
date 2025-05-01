@@ -24,15 +24,20 @@ chrome.webNavigation.onBeforeNavigate.addListener(details => {
     const domain = new URL(details.url).hostname;
 
     chrome.storage.local.get(
-        { tracked: [], currentLoads: {} },
+        { tracked: [], currentLoads: {}, recentLoads: {} },
         data => {
             if (!data.tracked.includes(domain)) return; // Only track if the domain is being tracked
 
             const currentLoads = { ...data.currentLoads };
+            const recentLoads = { ...data.recentLoads };
+
             if (!currentLoads[domain]) {
                 currentLoads[domain] = {}; // Initialize as an object for tab-specific tracking
             }
             currentLoads[domain][details.tabId] = Date.now(); // Store timestamp per tab ID
+
+            // Clear the recent load time for the domain
+            delete recentLoads[domain];
 
             // Start the badge counter
             chrome.action.setBadgeBackgroundColor({ color: '#87CEEB' }); // Light blue color for better visibility
@@ -53,8 +58,8 @@ chrome.webNavigation.onBeforeNavigate.addListener(details => {
                 });
             }, 500); // Update every 500ms
 
-            // Atomically update currentLoads
-            chrome.storage.local.set({ currentLoads });
+            // Atomically update currentLoads and recentLoads
+            chrome.storage.local.set({ currentLoads, recentLoads });
         }
     );
 });
