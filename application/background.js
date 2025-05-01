@@ -37,21 +37,21 @@ chrome.webNavigation.onBeforeNavigate.addListener(details => {
             // Start the badge counter
             chrome.action.setBadgeBackgroundColor({ color: '#87CEEB' }); // Light blue color for better visibility
 
-            // Start live badge updates
             const startTime = currentLoads[domain][details.tabId];
-            const updateBadge = () => {
+            const intervalId = setInterval(() => {
                 const now = Date.now();
                 const elapsed = now - startTime;
+
+                // Update the badge with the live count
                 chrome.action.setBadgeText({ text: formatDuration(elapsed) });
 
-                // Continue updating until navigation completes
+                // Check if navigation is still in progress
                 chrome.storage.local.get({ currentLoads: {} }, updatedData => {
-                    if (updatedData.currentLoads[domain]?.[details.tabId]) {
-                        setTimeout(updateBadge, 500); // Update every 500ms
+                    if (!updatedData.currentLoads[domain]?.[details.tabId]) {
+                        clearInterval(intervalId); // Stop updating if navigation is complete
                     }
                 });
-            };
-            updateBadge();
+            }, 500); // Update every 500ms
 
             // Atomically update currentLoads
             chrome.storage.local.set({ currentLoads });
