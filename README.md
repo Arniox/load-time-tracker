@@ -105,7 +105,7 @@ See our full [Privacy Policy](https://arniox.github.io/load-time-tracker/privacy
 
 ## 🤝 Contributing
 
-Contributions, issues, and feature requests are welcome! Please open an issue or submit a pull request on [GitHub](https://github.com/YourUser/YourRepo).
+Contributions, issues, and feature requests are welcome! Please open an issue or submit a pull request on [GitHub](https://github.com/Arniox/load-time-tracker).
 
 ---
 
