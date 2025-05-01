@@ -22,40 +22,39 @@ function formatDuration(ms) {
 //
 // Get time aggregates for a specific time window
 //
-function getTimeInWindow(logs, domain, windowType, currentValue) {
-    const now = Date.now();
+function getTimeInWindow(logs, domain, windowType) {
+    const now = new Date(); // Use Date object for precise calculations
+    const currentTimestamp = now.getTime();
 
-    // Get current window values
-    const currentHour = Math.floor(now / (60 * 60 * 1000));
-    const currentDay = Math.floor(now / (24 * 60 * 60 * 1000));
-    const currentWeek = Math.floor(now / (7 * 24 * 60 * 60 * 1000));
-    const currentMonth = Math.floor(now / (30 * 24 * 60 * 60 * 1000));
+    // Calculate the start of the current hour, day, week, and month
+    const startOfHour = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours()).getTime();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const startOfWeek = new Date(startOfDay - (now.getDay() * 24 * 60 * 60 * 1000)).getTime(); // Sunday as the start of the week
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+
+    // Determine the start time for the given window type
+    let startTime;
+    switch (windowType) {
+        case 'h': // Current hour
+            startTime = startOfHour;
+            break;
+        case 'd': // Current day
+            startTime = startOfDay + (60 * 60 * 1000); // Start at 1:00 AM
+            break;
+        case 'w': // Current week
+            startTime = startOfWeek + (24 * 60 * 60 * 1000); // Start Monday at 12:00 AM
+            break;
+        case 'm': // Current month
+            startTime = startOfMonth;
+            break;
+        default:
+            console.error(`Invalid window type: ${windowType}`);
+            return 0;
+    }
 
     // Filter logs for the specific domain and time window
     return logs
-        .filter(r => {
-            if (r.domain !== domain) return false;
-
-            switch (windowType) {
-                case 'h':
-                    return r.hourWindow === currentHour;
-                case 'd':
-                    return r.dayWindow === currentDay;
-                case 'w':
-                    return r.weekWindow === currentWeek;
-                case 'm':
-                    return r.monthWindow === currentMonth;
-                default:
-                    // Fallback to traditional time-based filtering
-                    const windowMaps = {
-                        h: 60 * 60 * 1000,
-                        d: 24 * 60 * 60 * 1000,
-                        w: 7 * 24 * 60 * 60 * 1000,
-                        m: 30 * 24 * 60 * 60 * 1000
-                    };
-                    return (now - r.timestamp) <= windowMaps[windowType];
-            }
-        })
+        .filter(r => r.domain === domain && r.timestamp >= startTime && r.timestamp <= currentTimestamp)
         .reduce((sum, r) => sum + (r.loadTime || 0), 0);
 }
 
