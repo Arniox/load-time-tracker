@@ -29,7 +29,7 @@ function getTimeInWindow(logs, domain, windowType) {
     // Calculate the start of the current hour, day, week, and month
     const startOfHour = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours()).getTime();
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    const startOfWeek = new Date(startOfDay - (now.getDay() * 24 * 60 * 60 * 1000)).getTime(); // Sunday as the start of the week
+    const startOfWeek = new Date(startOfDay - ((now.getDay() === 0 ? 6 : now.getDay() - 1) * 24 * 60 * 60 * 1000)).getTime(); // Monday as the start of the week
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
 
     // Determine the start time for the given window type
@@ -39,10 +39,10 @@ function getTimeInWindow(logs, domain, windowType) {
             startTime = startOfHour;
             break;
         case 'd': // Current day
-            startTime = startOfDay + (60 * 60 * 1000); // Start at 1:00 AM
+            startTime = startOfDay; // Start at 12:00 AM
             break;
         case 'w': // Current week
-            startTime = startOfWeek + (24 * 60 * 60 * 1000); // Start Monday at 12:00 AM
+            startTime = startOfWeek; // Start at 12:00 AM on Monday
             break;
         case 'm': // Current month
             startTime = startOfMonth;
