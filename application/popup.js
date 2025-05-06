@@ -245,80 +245,77 @@ function renderSiteList() {
 
 // Only update the stats in existing list items
 function updateStats() {
-    chrome.storage.local.get(
-        ['tracked', 'logs', 'currentLoads', 'recentLoads'],
-        data => {
-            const logs = data.logs || [];
-            const currentLoads = data.currentLoads || {};
-            const recentLoads = data.recentLoads || {};
-            const now = Date.now();
+    chrome.storage.local.get(['tracked', 'logs', 'currentLoads', 'recentLoads'], data => {
+        const logs = data.logs || [];
+        const currentLoads = data.currentLoads || {};
+        const recentLoads = data.recentLoads || {};
+        const now = Date.now();
 
-            // Cache stats elements to avoid repeated DOM queries
-            const statsElements = new Map();
-            document.querySelectorAll('.stats[data-domain]').forEach(el => {
-                statsElements.set(el.dataset.domain, el);
-            });
+        // Cache stats elements to avoid repeated DOM queries
+        const statsElements = new Map();
+        document.querySelectorAll('.stats[data-domain]').forEach(el => {
+            statsElements.set(el.dataset.domain, el);
+        });
 
-            const secondStatsElements = new Map();
-            document.querySelectorAll('.secondary-stats[data-domain]').forEach(el => {
-                secondStatsElements.set(el.dataset.domain, el);
-            });
+        const secondStatsElements = new Map();
+        document.querySelectorAll('.secondary-stats[data-domain]').forEach(el => {
+            secondStatsElements.set(el.dataset.domain, el);
+        });
 
-            data.tracked.forEach(domain => {
-                const statsElement = statsElements.get(domain);
-                const secondStatsElement = secondStatsElements.get(domain);
+        data.tracked.forEach(domain => {
+            const statsElement = statsElements.get(domain);
+            const secondStatsElement = secondStatsElements.get(domain);
 
-                if (!statsElement || !secondStatsElement) return;
+            if (!statsElement || !secondStatsElement) return;
 
-                // Calculate aggregates for each time window
-                const totals = {
-                    h: getTimeInWindow(logs, domain, 'h', currentLoads[domain]),
-                    d: getTimeInWindow(logs, domain, 'd', currentLoads[domain]),
-                    w: getTimeInWindow(logs, domain, 'w', currentLoads[domain]),
-                    m: getTimeInWindow(logs, domain, 'm', currentLoads[domain])
-                };
+            // Calculate aggregates for each time window
+            const totals = {
+                h: getTimeInWindow(logs, domain, 'h', currentLoads[domain]),
+                d: getTimeInWindow(logs, domain, 'd', currentLoads[domain]),
+                w: getTimeInWindow(logs, domain, 'w', currentLoads[domain]),
+                m: getTimeInWindow(logs, domain, 'm', currentLoads[domain])
+            };
 
-                // Include live duration for all tabs of the domain
-                const domainLoads = currentLoads[domain];
-                let nowTime = 0; // Reset "Now" time to 0ms by default
-                if (domainLoads) {
-                    Object.values(domainLoads).forEach(startTime => {
-                        if (typeof startTime === 'number') {
-                            const liveDuration = now - startTime;
-                            nowTime += liveDuration;
-                            totals.h += liveDuration;
-                            totals.d += liveDuration;
-                            totals.w += liveDuration;
-                            totals.m += liveDuration;
-                        }
-                    });
-                } else if (recentLoads[domain]) {
-                    nowTime = recentLoads[domain]; // Use the most recent load time if no live load
-                }
+            // Include live duration for all tabs of the domain
+            const domainLoads = currentLoads[domain];
+            let nowTime = 0; // Reset "Now" time to 0ms by default
+            if (domainLoads) {
+                Object.values(domainLoads).forEach(startTime => {
+                    if (typeof startTime === 'number') {
+                        const liveDuration = now - startTime;
+                        nowTime += liveDuration;
+                        totals.h += liveDuration;
+                        totals.d += liveDuration;
+                        totals.w += liveDuration;
+                        totals.m += liveDuration;
+                    }
+                });
+            } else if (recentLoads[domain]) {
+                nowTime = recentLoads[domain]; // Use the most recent load time if no live load
+            }
 
-                // Build the stats line
-                const stats = [
-                    `H ${formatDuration(totals.h)}`,
-                    `D ${formatDuration(totals.d)}`,
-                    `W ${formatDuration(totals.w)}`,
-                    `M ${formatDuration(totals.m)}`
-                ].join(' | ');
+            // Build the stats line
+            const stats = [
+                `H ${formatDuration(totals.h)}`,
+                `D ${formatDuration(totals.d)}`,
+                `W ${formatDuration(totals.w)}`,
+                `M ${formatDuration(totals.m)}`
+            ].join(' | ');
 
-                // Update only the stats content
-                statsElement.textContent = stats;
+            // Update only the stats content
+            statsElement.textContent = stats;
 
-                // Update secondary stats for "Now" and "Avg"
-                const domainLogs = logs.filter(r => r.domain === domain);
-                const avgTime = domainLogs.length > 0
-                    ? domainLogs.reduce((sum, r) => sum + (r.loadTime || 0), 0) / domainLogs.length
-                    : 0;
-                const reloadCount = domainLogs.length;
+            // Update secondary stats for "Now" and "Avg"
+            const domainLogs = logs.filter(r => r.domain === domain);
+            const avgTime = domainLogs.length > 0
+                ? domainLogs.reduce((sum, r) => sum + (r.loadTime || 0), 0) / domainLogs.length
+                : 0;
+            const reloadCount = domainLogs.length;
 
-                const secondaryStats = `Now ${formatDuration(nowTime)} | Avg ${formatDuration(avgTime)} | Reloads ${reloadCount}`;
-                secondStatsElement.textContent = secondaryStats;
-            });
-        }
-    );
+            const secondaryStats = `Now ${formatDuration(nowTime)} | Avg ${formatDuration(avgTime)} | Reloads ${reloadCount}`;
+            secondStatsElement.textContent = secondaryStats;
+        });
+    });
 }
 
 function updateTotalStats() {
