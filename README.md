@@ -2,7 +2,7 @@
 
 
 
-**Version 1.0.0** • *2025-05-01*
+**Version 1.0.1** • *2025-05-06*
 
 > Measure, visualize & optimize your page-load performance—live, right from your browser toolbar.
 
