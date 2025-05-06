@@ -22,45 +22,46 @@ chrome.webNavigation.onBeforeNavigate.addListener(details => {
     if (details.frameId !== 0) return; // Ignore subframes
     const domain = new URL(details.url).hostname;
 
-    chrome.storage.local.get(
-        { tracked: [], currentLoads: {}, recentLoads: {} },
-        data => {
-            if (!data.tracked.includes(domain)) return; // Only track if the domain is being tracked
+    chrome.storage.local.get({ tracked: [], currentLoads: {}, recentLoads: {} }, data => {
+        if (!data.tracked.includes(domain)) return; // Only track if the domain is being tracked
 
-            const currentLoads = { ...data.currentLoads };
-            const recentLoads = { ...data.recentLoads };
+        const currentLoads = { ...data.currentLoads };
+        const recentLoads = { ...data.recentLoads };
 
-            if (!currentLoads[domain]) {
-                currentLoads[domain] = {}; // Initialize as an object for tab-specific tracking
-            }
-            currentLoads[domain][details.tabId] = Date.now(); // Store timestamp per tab ID
-
-            // Clear the recent load time for the domain
-            delete recentLoads[domain];
-
-            // Start the badge counter
-            chrome.action.setBadgeBackgroundColor({ color: '#87CEEB' }); // Light blue color for better visibility
-
-            const startTime = currentLoads[domain][details.tabId];
-            const intervalId = setInterval(() => {
-                const now = Date.now();
-                const elapsed = now - startTime;
-
-                // Update the badge with the live count
-                chrome.action.setBadgeText({ text: formatDuration(elapsed) });
-
-                // Check if navigation is still in progress
-                chrome.storage.local.get({ currentLoads: {} }, updatedData => {
-                    if (!updatedData.currentLoads[domain]?.[details.tabId]) {
-                        clearInterval(intervalId); // Stop updating if navigation is complete
-                    }
-                });
-            }, 100); // Update every 100ms (since the formatDuration for this is set to fixed 1 decimal place)
-
-            // Atomically update currentLoads and recentLoads
-            chrome.storage.local.set({ currentLoads, recentLoads });
+        if (!currentLoads[domain]) {
+            currentLoads[domain] = {}; // Initialize as an object for tab-specific tracking
         }
-    );
+        currentLoads[domain][details.tabId] = Date.now(); // Store timestamp per tab ID
+
+        // Clear the recent load time for the domain
+        delete recentLoads[domain];
+
+        // Start the badge counter
+        chrome.action.setBadgeBackgroundColor({ color: '#87CEEB' }); // Light blue color for better visibility
+
+        const startTime = currentLoads[domain][details.tabId];
+        const intervalId = setInterval(() => {
+            const now = Date.now();
+            const elapsed = now - startTime;
+
+            // Update the badge with the live count for the active tab
+            chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+                if (tabs[0]?.id === details.tabId) {
+                    chrome.action.setBadgeText({ text: formatDuration(elapsed) });
+                }
+            });
+
+            // Check if navigation is still in progress
+            chrome.storage.local.get({ currentLoads: {} }, updatedData => {
+                if (!updatedData.currentLoads[domain]?.[details.tabId]) {
+                    clearInterval(intervalId); // Stop updating if navigation is complete
+                }
+            });
+        }, 100); // Update every 100ms
+
+        // Atomically update currentLoads and recentLoads
+        chrome.storage.local.set({ currentLoads, recentLoads });
+    });
 });
 
 // 2) On navigation complete, compute and persist loadTime + timestamp
@@ -117,8 +118,12 @@ chrome.webNavigation.onCompleted.addListener(details => {
 
             chrome.storage.local.set({ currentLoads, logs: pruned, recentLoads });
 
-            // Update the badge with the final "Now" time
-            chrome.action.setBadgeText({ text: formatDuration(loadTime) }); // Show final load time
+            // Update the badge with the final load time for the active tab
+            chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+                if (tabs[0]?.id === details.tabId) {
+                    chrome.action.setBadgeText({ text: formatDuration(loadTime) });
+                }
+            });
         }).catch(() => {
             // In the unlikely event scripting.executeScript fails,
             // fall back to our own timestamp diff:
@@ -146,8 +151,12 @@ chrome.webNavigation.onCompleted.addListener(details => {
 
             chrome.storage.local.set({ currentLoads, logs: pruned, recentLoads });
 
-            // Update the badge with the fallback "Now" time
-            chrome.action.setBadgeText({ text: formatDuration(loadTime) }); // Show final load time
+            // Update the badge with the final load time for the active tab
+            chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+                if (tabs[0]?.id === details.tabId) {
+                    chrome.action.setBadgeText({ text: formatDuration(loadTime) });
+                }
+            });
         });
     });
 });

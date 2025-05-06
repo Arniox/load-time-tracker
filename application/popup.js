@@ -280,7 +280,7 @@ function updateStats() {
 
                 // Include live duration for all tabs of the domain
                 const domainLoads = currentLoads[domain];
-                let nowTime = recentLoads[domain] || 0; // Start with the most recent load time
+                let nowTime = 0; // Reset "Now" time to 0ms by default
                 if (domainLoads) {
                     Object.values(domainLoads).forEach(startTime => {
                         if (typeof startTime === 'number') {
@@ -292,6 +292,8 @@ function updateStats() {
                             totals.m += liveDuration;
                         }
                     });
+                } else if (recentLoads[domain]) {
+                    nowTime = recentLoads[domain]; // Use the most recent load time if no live load
                 }
 
                 // Build the stats line
