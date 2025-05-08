@@ -40,6 +40,8 @@ chrome.webNavigation.onBeforeNavigate.addListener(details => {
 
             // Start the badge counter
             chrome.action.setBadgeBackgroundColor({ color: '#87CEEB' }); // Light blue color for better visibility
+            // Atomically update currentLoads and recentLoads
+            chrome.storage.local.set({ currentLoads, recentLoads });
 
             const startTime = currentLoads[domain][details.tabId];
             const intervalId = setInterval(() => {
@@ -60,9 +62,6 @@ chrome.webNavigation.onBeforeNavigate.addListener(details => {
                     }
                 });
             }, 100); // Update every 100ms
-
-            // Atomically update currentLoads and recentLoads
-            chrome.storage.local.set({ currentLoads, recentLoads });
         }
     );
 });
@@ -169,8 +168,9 @@ chrome.tabs.onActivated.addListener(() => {
 });
 
 chrome.tabs.onRemoved.addListener(tabId => {
-    chrome.storage.local.get({ currentLoads: {}, tracked: [] }, data => {
+    chrome.storage.local.get({ currentLoads: {}, recentLoads: {}, tracked: [] }, data => {
         const currentLoads = { ...data.currentLoads };
+        const recentLoads = { ...data.recentLoads };
 
         // Find the domain associated with the closed tab
         let domainToRemove = null;
@@ -186,9 +186,10 @@ chrome.tabs.onRemoved.addListener(tabId => {
 
         if (domainToRemove) {
             delete currentLoads[domainToRemove];
+            delete recentLoads[domainToRemove]; // Clear recentLoads for the domain
         }
 
-        chrome.storage.local.set({ currentLoads });
+        chrome.storage.local.set({ currentLoads, recentLoads });
     });
 
     // Clear the badge if the closed tab was the active tab
