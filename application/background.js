@@ -40,7 +40,8 @@ chrome.webNavigation.onBeforeNavigate.addListener(details => {
 
             // Start the badge counter
             chrome.action.setBadgeBackgroundColor({ color: '#87CEEB' }); // Light blue color for better visibility
-            // Atomically update currentLoads and recentLoads
+
+            // Save the updated state immediately
             chrome.storage.local.set({ currentLoads, recentLoads });
 
             const startTime = currentLoads[domain][details.tabId];
@@ -160,6 +161,23 @@ chrome.webNavigation.onCompleted.addListener(details => {
                 }
             });
         });
+    });
+});
+
+chrome.runtime.onStartup.addListener(() => {
+    chrome.storage.local.get({ currentLoads: {}, recentLoads: {} }, data => {
+        const currentLoads = { ...data.currentLoads };
+        const recentLoads = { ...data.recentLoads };
+
+        // Clear any stale entries in currentLoads and recentLoads
+        for (const domain in currentLoads) {
+            if (Object.keys(currentLoads[domain]).length === 0) {
+                delete currentLoads[domain];
+                delete recentLoads[domain];
+            }
+        }
+
+        chrome.storage.local.set({ currentLoads, recentLoads });
     });
 });
 
