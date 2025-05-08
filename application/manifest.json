@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Load Time Tracker",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "Track and aggregate page-load times for selected sites.",
     "icons": {
         "48": "icon-48.png",
@@ -33,5 +33,8 @@
     ],
     "background": {
         "service_worker": "background.js"
-    }
+    },
+    "offline_enabled": true,
+    "minimum_chrome_version": "96.0",
+    "homepage_url": "https://github.com/Arniox/load-time-tracker"
 }
