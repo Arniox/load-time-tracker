@@ -1,6 +1,6 @@
 // content.js
 (() => {
-    console.log('Content script loaded for:', window.location.href);
+    // console.log('Content script loaded for:', window.location.href);
 
     function extractFaviconUrl() {
         const selectors = [
@@ -31,7 +31,7 @@
             href = base + href;
         }
 
-        console.log('Found favicon URL:', href);
+        // console.log('Found favicon URL:', href);
         return href;
     }
 
@@ -40,14 +40,14 @@
 
     chrome.storage.local.get({ icons: {} }, ({ icons }) => {
         if (faviconUrl) {
-            console.log(`Storing favicon for ${domain}: ${faviconUrl}`);
+            // console.log(`Storing favicon for ${domain}: ${faviconUrl}`);
             icons[domain] = faviconUrl;
             chrome.storage.local.set({ icons }, () => {
                 // Notify that favicon scraping is complete
                 chrome.runtime.sendMessage({ type: 'favicon-scraped', domain });
             });
         } else {
-            console.log(`No favicon found for ${domain}`);
+            // console.log(`No favicon found for ${domain}`);
             chrome.runtime.sendMessage({ type: 'favicon-scraped', domain });
         }
     });
