@@ -1,6 +1,6 @@
 # Load Time Tracker
 
-**Version 1.0.2** • *2025-05-09*
+**Version 1.0.3** • *2025-05-14*
 
 > Measure, visualize & optimize your page-load performance—live, right from your browser toolbar.
 
