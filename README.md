@@ -1,6 +1,6 @@
 # Load Time Tracker
 
-**Version 1.0.3** • *2025-05-14*
+**Version 1.1.0** • *2025-05-16*
 
 > Measure, visualize & optimize your page-load performance—live, right from your browser toolbar.
 
@@ -8,7 +8,7 @@
 
 ## 📖 Overview
 
-Load Time Tracker is a lightweight Chrome extension crafted for developers and QA teams to monitor real-world page-load durations. With one click, you can track any site, see a live badge timer as your page loads, and review historical aggregates over the last hour, day, week, and month. All data is stored locally—no external servers or third-party analytics.
+Load Time Tracker is a lightweight Chrome extension crafted for developers and QA teams to monitor real-world page-load durations. With one click, you can track any site, see a live badge timer as your page loads, and review historical aggregates over the last hour, day, week, month, and year. All data is stored locally—no external servers or third-party analytics.
 
 ---
 
@@ -17,14 +17,15 @@ Load Time Tracker is a lightweight Chrome extension crafted for developers and Q
 - **One-click tracking**: Add the current domain to your watch list with the “＋” button in the popup.
 - **Live badge timer**: See a millisecond-precision timer counting up on your extension icon while the page loads.
 - **Accurate final measurements**: Captures precise load durations via the Performance Timing API, with a timestamp fallback.
-- **Sliding-window aggregates**: Automatically compute total load time over the last hour, day, week, and month; windows reset at each rollover.
+- **Sliding-window aggregates**: Automatically compute total load time over the last hour, day, week, month, and **year**; windows reset at each rollover.
 - **Per-site insights**: In the popup, view for each domain:
   - **Now**: live or most recent load duration (aggregates across multiple tabs for the same domain).
   - **Avg**: average load time across recorded loads.
   - **Reloads**: total number of logged load events.
+  - **H / D / W / M / Y**: total load time over sliding windows (Hour, Day, Week, Month, Year).
 - **Global totals**: Combined H/D/W/M summary for all monitored domains.
 - **Favicon scraping**: Displays each site’s real favicon (harvested from `<link rel="icon">`).
-- **Automatic pruning**: Logs older than 30 days are cleared to keep storage usage minimal.
+- **Automatic pruning**: Logs older than 1 year are cleared to keep storage usage minimal.
 - **Robust multi-tab handling**:
   - Tracks multiple tabs for the same domain independently.
   - Automatically stops tracking when the last tab for a domain is closed.
@@ -77,7 +78,7 @@ YourRepo/
 2. **Refresh** the page—observe the live badge timer increment in real time.
 3. Open the popup to see:
    - **Now**: current in-flight or last load duration (aggregates across all tabs for the same domain).
-   - **H / D / W / M**: total load time over sliding windows.
+   - **H / D / W / M / Y**: total load time over sliding windows.
    - **Avg** and **Reloads** counts per domain.
 4. Remove a site by clicking the **×** next to its entry—this deletes all associated logs.
 
