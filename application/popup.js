@@ -29,8 +29,9 @@ function getTimeInWindow(logs, domain, windowType) {
     // Calculate the start of the current hour, day, week, and month
     const startOfHour = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours()).getTime();
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    const startOfWeek = new Date(startOfDay - ((now.getDay() === 0 ? 6 : now.getDay() - 1) * 24 * 60 * 60 * 1000)).getTime(); // Monday as the start of the week
+    const startOfWeek = new Date(startOfDay - ((now.getDay() === 0 ? 6 : now.getDay() - 1) * 24 * 60 * 60 * 1000)).getTime();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    const startOfYear = new Date(now.getFullYear(), 0, 1).getTime(); // Jan 1st, 00:00
 
     // Determine the start time for the given window type
     let startTime;
@@ -46,6 +47,9 @@ function getTimeInWindow(logs, domain, windowType) {
             break;
         case 'm': // Current month
             startTime = startOfMonth;
+            break;
+        case 'y': // Current year
+            startTime = startOfYear; // Start at 12:00 AM on Jan 1st
             break;
         default:
             console.error(`Invalid window type: ${windowType}`);
@@ -273,7 +277,8 @@ function updateStats() {
                 h: getTimeInWindow(logs, domain, 'h', currentLoads[domain]),
                 d: getTimeInWindow(logs, domain, 'd', currentLoads[domain]),
                 w: getTimeInWindow(logs, domain, 'w', currentLoads[domain]),
-                m: getTimeInWindow(logs, domain, 'm', currentLoads[domain])
+                m: getTimeInWindow(logs, domain, 'm', currentLoads[domain]),
+                y: getTimeInWindow(logs, domain, 'y', currentLoads[domain])
             };
 
             // Include live duration for all tabs of the domain
@@ -288,6 +293,7 @@ function updateStats() {
                         totals.d += liveDuration;
                         totals.w += liveDuration;
                         totals.m += liveDuration;
+                        totals.y += liveDuration;
                     }
                 });
             } else if (recentLoads[domain]) {
@@ -299,7 +305,8 @@ function updateStats() {
                 `H ${formatDuration(totals.h)}`,
                 `D ${formatDuration(totals.d)}`,
                 `W ${formatDuration(totals.w)}`,
-                `M ${formatDuration(totals.m)}`
+                `M ${formatDuration(totals.m)}`,
+                `Y ${formatDuration(totals.y)}`
             ].join(' | ');
 
             // Update only the stats content
@@ -333,12 +340,13 @@ function updateTotalStats() {
         }
 
         // Aggregate totals for all tracked sites
-        const totals = { h: 0, d: 0, w: 0, m: 0 };
+        const totals = { h: 0, d: 0, w: 0, m: 0, y: 0 };
         tracked.forEach(domain => {
             totals.h += getTimeInWindow(logs, domain, 'h', currentLoads[domain]);
             totals.d += getTimeInWindow(logs, domain, 'd', currentLoads[domain]);
             totals.w += getTimeInWindow(logs, domain, 'w', currentLoads[domain]);
             totals.m += getTimeInWindow(logs, domain, 'm', currentLoads[domain]);
+            totals.y += getTimeInWindow(logs, domain, 'y', currentLoads[domain]);
 
             // Include live duration for all tabs of the domain
             const domainLoads = currentLoads[domain];
@@ -350,6 +358,7 @@ function updateTotalStats() {
                         totals.d += liveDuration;
                         totals.w += liveDuration;
                         totals.m += liveDuration;
+                        totals.y += liveDuration;
                     }
                 });
             }
@@ -360,7 +369,8 @@ function updateTotalStats() {
             `H ${formatDuration(totals.h)}`,
             `D ${formatDuration(totals.d)}`,
             `W ${formatDuration(totals.w)}`,
-            `M ${formatDuration(totals.m)}`
+            `M ${formatDuration(totals.m)}`,
+            `Y ${formatDuration(totals.y)}`
         ].join(' | ');
 
         // Update the total stats element
@@ -409,7 +419,7 @@ addBtn.addEventListener('click', () => {
             }
 
             // Prune old logs
-            const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+            const cutoff = Date.now() - 365 * 24 * 60 * 60 * 1000; // 1 year
             const pruned = logs.filter(r => r.timestamp >= cutoff);
 
             chrome.storage.local.set({ tracked, logs: pruned }, () => {
