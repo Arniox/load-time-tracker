@@ -1,8 +1,8 @@
 // background.js
 
-// Keep only the last 30 days of logs
+// Keep only the last 365 days of logs (1 year)
 function pruneOldLogs(logs) {
-    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const cutoff = Date.now() - 365 * 24 * 60 * 60 * 1000;
     return logs.filter(r => r.timestamp >= cutoff);
 }
 
@@ -115,7 +115,8 @@ chrome.webNavigation.onCompleted.addListener(details => {
                     hourWindow: Math.floor(Date.now() / (60 * 60 * 1000)),
                     dayWindow: Math.floor(Date.now() / (24 * 60 * 60 * 1000)),
                     weekWindow: Math.floor(Date.now() / (7 * 24 * 60 * 60 * 1000)),
-                    monthWindow: Math.floor(Date.now() / (30 * 24 * 60 * 60 * 1000))
+                    monthWindow: Math.floor(Date.now() / (30 * 24 * 60 * 60 * 1000)),
+                    yearWindow: new Date().getFullYear()
                 });
             }
 
@@ -148,7 +149,8 @@ chrome.webNavigation.onCompleted.addListener(details => {
                     hourWindow: Math.floor(Date.now() / (60 * 60 * 1000)),
                     dayWindow: Math.floor(Date.now() / (24 * 60 * 60 * 1000)),
                     weekWindow: Math.floor(Date.now() / (7 * 24 * 60 * 60 * 1000)),
-                    monthWindow: Math.floor(Date.now() / (30 * 24 * 60 * 60 * 1000))
+                    monthWindow: Math.floor(Date.now() / (30 * 24 * 60 * 60 * 1000)),
+                    yearWindow: new Date().getFullYear()
                 });
             }
 
