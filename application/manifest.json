@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Load Time Tracker",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "description": "Track and aggregate page-load times for selected sites, now with yearly stats.",
     "icons": {
         "48": "icon-48.png",

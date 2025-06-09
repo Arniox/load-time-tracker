@@ -1,6 +1,6 @@
 # Load Time Tracker
 
-**Version 1.1.0** • *2025-05-16*
+**Version 1.2.0** • *June 9, 2025*
 
 > Measure, visualize & optimize your page-load performance—live, right from your browser toolbar.
 
@@ -29,6 +29,7 @@ Load Time Tracker is a lightweight Chrome extension crafted for developers and Q
 - **Robust multi-tab handling**:
   - Tracks multiple tabs for the same domain independently.
   - Automatically stops tracking when the last tab for a domain is closed.
+- **Dead tab cleanup**: Automatically clears stuck counters for tabs that no longer exist.
 - **Privacy-first storage**: Everything lives in `chrome.storage.local` under your profile.
 
 ---
