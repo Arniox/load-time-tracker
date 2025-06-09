@@ -8,7 +8,7 @@ function pruneOldLogs(logs) {
 
 function formatDuration(ms) {
     if (typeof ms !== 'number' || isNaN(ms)) return '0ms';
-    if (ms < 1000) return `${Math.round(ms)}ms`; // Round ms to the nearest integer
+    if (ms < 1000) return `${Math.round(ms)}ms`;
     const s = ms / 1000;
     if (ms < 60000) return `${s.toFixed(1)}s`;
     const m = ms / 60000;
@@ -187,6 +187,7 @@ chrome.tabs.onActivated.addListener(() => {
     chrome.action.setBadgeText({ text: '' }); // Clear the badge
 });
 
+// 3) Handle tab removal
 chrome.tabs.onRemoved.addListener(tabId => {
     chrome.storage.local.get({ currentLoads: {}, recentLoads: {}, tracked: [] }, data => {
         const currentLoads = { ...data.currentLoads };
