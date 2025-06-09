@@ -17,6 +17,24 @@ function formatDuration(ms) {
     return `${Math.round(h)}h`;
 }
 
+// Helper function to clean up dead tabs in currentLoads
+function cleanDeadTabs(currentLoads) {
+    chrome.tabs.query({}, tabs => {
+        const activeTabIds = tabs.map(tab => tab.id); // Get all active tab IDs
+        for (const domain in currentLoads) {
+            for (const tabId in currentLoads[domain]) {
+                if (!activeTabIds.includes(Number(tabId))) {
+                    delete currentLoads[domain][tabId]; // Remove dead tab entry
+                }
+            }
+            if (Object.keys(currentLoads[domain]).length === 0) {
+                delete currentLoads[domain]; // Remove domain if no tabs remain
+            }
+        }
+        chrome.storage.local.set({ currentLoads }); // Save cleaned state
+    });
+}
+
 // 1) On navigation start, stamp the timestamp for live counting
 chrome.webNavigation.onBeforeNavigate.addListener(details => {
     if (details.frameId !== 0) return; // Ignore subframes
@@ -29,6 +47,9 @@ chrome.webNavigation.onBeforeNavigate.addListener(details => {
 
             const currentLoads = { ...data.currentLoads };
             const recentLoads = { ...data.recentLoads };
+
+            // Clean up dead tabs before updating currentLoads
+            cleanDeadTabs(currentLoads);
 
             if (!currentLoads[domain]) {
                 currentLoads[domain] = {}; // Initialize as an object for tab-specific tracking
