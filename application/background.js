@@ -70,11 +70,15 @@ chrome.webNavigation.onBeforeNavigate.addListener(details => {
                 const now = Date.now();
                 const elapsed = now - startTime;
 
-                // Update the badge with the live count for the active tab
-                chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-                    if (tabs[0]?.id === details.tabId) {
-                        chrome.action.setBadgeText({ text: formatDuration(elapsed) });
-                    }
+                // Update the badge with the live count for the active tab in the current window
+                chrome.windows.getCurrent(window => {
+                    chrome.tabs.query({ active: true, windowId: window.id }, tabs => {
+                        tabs.forEach(tab => {
+                            if (tab.id === details.tabId) {
+                                chrome.action.setBadgeText({ text: formatDuration(elapsed) });
+                            }
+                        });
+                    });
                 });
 
                 // Check if navigation is still in progress
@@ -144,10 +148,14 @@ chrome.webNavigation.onCompleted.addListener(details => {
             chrome.storage.local.set({ currentLoads, logs: pruned, recentLoads });
 
             // Update the badge with the final load time for the active tab
-            chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-                if (tabs[0]?.id === details.tabId) {
-                    chrome.action.setBadgeText({ text: formatDuration(loadTime) });
-                }
+            chrome.windows.getCurrent(window => {
+                chrome.tabs.query({ active: true, windowId: window.id }, tabs => {
+                    tabs.forEach(tab => {
+                        if (tab.id === details.tabId) {
+                            chrome.action.setBadgeText({ text: formatDuration(elapsed) });
+                        }
+                    });
+                });
             });
         }).catch(() => {
             // In the unlikely event scripting.executeScript fails,
@@ -178,10 +186,14 @@ chrome.webNavigation.onCompleted.addListener(details => {
             chrome.storage.local.set({ currentLoads, logs: pruned, recentLoads });
 
             // Update the badge with the final load time for the active tab
-            chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-                if (tabs[0]?.id === details.tabId) {
-                    chrome.action.setBadgeText({ text: formatDuration(loadTime) });
-                }
+            chrome.windows.getCurrent(window => {
+                chrome.tabs.query({ active: true, windowId: window.id }, tabs => {
+                    tabs.forEach(tab => {
+                        if (tab.id === details.tabId) {
+                            chrome.action.setBadgeText({ text: formatDuration(elapsed) });
+                        }
+                    });
+                });
             });
         });
     });
