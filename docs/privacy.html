@@ -1,163 +1,208 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8" />
     <title>Privacy Policy — Load Time Tracker</title>
     <style>
-    body { max-width: 800px; margin: auto; padding: 2em; font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-    h1, h2, h3 { margin-top: 1.5em; color: #2c3e50; }
-    ul { margin-left: 1.5em; }
-    code { background: #f0f0f0; padding: 0.2em 0.4em; border-radius: 3px; font-family: monospace; }
-    hr { margin: 2em 0; border: none; border-top: 1px solid #ddd; }
-    .footer { font-size: 0.9em; color: #777; text-align: center; margin-top: 2em; }
-  </style>
-</head>
-<body>
+      body {
+        max-width: 800px;
+        margin: auto;
+        padding: 2em;
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+      }
+      h1,
+      h2,
+      h3 {
+        margin-top: 1.5em;
+        color: #2c3e50;
+      }
+      ul {
+        margin-left: 1.5em;
+      }
+      code {
+        background: #f0f0f0;
+        padding: 0.2em 0.4em;
+        border-radius: 3px;
+        font-family: monospace;
+      }
+      hr {
+        margin: 2em 0;
+        border: none;
+        border-top: 1px solid #ddd;
+      }
+      .footer {
+        font-size: 0.9em;
+        color: #777;
+        text-align: center;
+        margin-top: 2em;
+      }
+    </style>
+  </head>
+  <body>
     <h1>Privacy Policy</h1>
-    <p>
-        <strong>Effective date:</strong> 2025-09-22
-    </p>
+    <p><strong>Effective date:</strong> 2025-09-22</p>
 
     <h2>1. Introduction</h2>
     <p>
-        Load Time Tracker ("the Extension") is a Chrome browser extension designed to help developers and QA teams measure,
-        record, and visualize page-load performance in real time. This policy explains what data the Extension collects,
-        how it is used, where it is stored, and your rights and controls.
+      Load Time Tracker ("the Extension") is a Chrome browser extension designed
+      to help developers and QA teams measure, record, and visualize page-load
+      performance in real time. This policy explains what data the Extension
+      collects, how it is used, where it is stored, and your rights and
+      controls.
     </p>
 
     <h2>2. Data Collected</h2>
     <p>
-        The Extension collects and stores the following information
-        <em>
-            locally
-        </em> in your browser's storage:
+      The Extension collects and stores the following information
+      <em> locally </em> in your browser's storage:
     </p>
     <ul>
-        <li>
-            <strong>Tracked domains</strong>: the list of hostnames you explicitly add via the "＋" button.
-        </li>
-        <li>
-            <strong>Load events</strong>:
-            <ul>
-                <li>
-                    <code>timestamp</code>: the millisecond-precision moment when a tracked page completes loading.
-                </li>
-                <li>
-                    <code>loadTime</code>: the duration (in milliseconds) between navigation start and the page's load event,
-                    obtained via the Performance API or a timestamp fallback.
-                </li>
-            </ul>
-        </li>
-        <li>
-            <strong>In-flight timing</strong>: transient start timestamps used to drive the live badge timer while a page is loading.
-        </li>
-        <li>
-            <strong>Favicons</strong>: URLs scraped from each page's
-            <code>&lt;link rel="icon"&gt;</code> tags for display in the popup.
-        </li>
-        <li>
-            <strong>Preferences & settings</strong>: local-only options such as the on-page overlay toggles (global and per-domain),
-            anomaly alert enablement and thresholds, and recent notification timestamps used solely to prevent spammy alerts.
-        </li>
+      <li>
+        <strong>Tracked domains</strong>: the list of hostnames you explicitly
+        add via the "＋" button.
+      </li>
+      <li>
+        <strong>Load events</strong>:
+        <ul>
+          <li>
+            <code>timestamp</code>: the millisecond-precision moment when a
+            tracked page completes loading.
+          </li>
+          <li>
+            <code>loadTime</code>: the duration (in milliseconds) between
+            navigation start and the page's load event, obtained via the
+            Performance API or a timestamp fallback.
+          </li>
+        </ul>
+      </li>
+      <li>
+        <strong>In-flight timing</strong>: transient start timestamps used to
+        drive the live badge timer while a page is loading.
+      </li>
+      <li>
+        <strong>Favicons</strong>: URLs scraped from each page's
+        <code>&lt;link rel="icon"&gt;</code> tags for display in the popup.
+      </li>
+      <li>
+        <strong>Preferences & settings</strong>: local-only options such as the
+        on-page overlay toggles (global and per-domain), anomaly alert
+        enablement and thresholds, and recent notification timestamps used
+        solely to prevent spammy alerts.
+      </li>
     </ul>
 
     <h2>3. Purpose of Collection</h2>
     <p>We use this data solely to:</p>
     <ul>
-        <li>
-            Display a
-            <strong>live badge timer</strong> on your toolbar icon while a tracked page loads.
-        </li>
-        <li>
-            Persist each page's
-            <strong>final loadTime</strong> and
-            <strong>timestamp</strong> when loading completes.
-        </li>
-        <li>
-            Compute and display
-            <strong>sliding-window aggregates</strong>: total load time over the last hour, day, week, and month.
-        </li>
-        <li>
-            Show per-site statistics in the popup, including last load duration, average load time, and reload count.
-        </li>
-        <li>
-            Provide optional <strong>local system notifications</strong> when a recent load appears anomalously slow compared to your
-            recent 14‑day baseline. These notifications are generated entirely on-device; no data is transmitted externally.
-        </li>
-        <li>
-            Prune logs older than 30 days automatically to keep your data fresh and storage usage minimal.
-        </li>
-        <li>Render each site's favicon for easy recognition.</li>
+      <li>
+        Display a
+        <strong>live badge timer</strong> on your toolbar icon while a tracked
+        page loads.
+      </li>
+      <li>
+        Persist each page's
+        <strong>final loadTime</strong> and <strong>timestamp</strong> when
+        loading completes.
+      </li>
+      <li>
+        Compute and display
+        <strong>sliding-window aggregates</strong>: total load time over the
+        last hour, day, week, and month.
+      </li>
+      <li>
+        Show per-site statistics in the popup, including last load duration,
+        average load time, and reload count.
+      </li>
+      <li>
+        Provide optional <strong>local system notifications</strong> when a
+        recent load appears anomalously slow compared to your recent 14‑day
+        baseline. These notifications are generated entirely on-device; no data
+        is transmitted externally.
+      </li>
+      <li>
+        Prune logs older than 30 days automatically to keep your data fresh and
+        storage usage minimal.
+      </li>
+      <li>Render each site's favicon for easy recognition.</li>
     </ul>
 
     <h2>4. Storage & Retention</h2>
     <p>
-        All data is stored in
-        <code>chrome.storage.local</code> under your profile. No data leaves your device. Records older than
-        <strong>365 days</strong> are automatically pruned by the Extension on each new load event.
+      All data is stored in
+      <code>chrome.storage.local</code> under your profile. No data leaves your
+      device. Records older than <strong>365 days</strong> are automatically
+      pruned by the Extension on each new load event.
     </p>
 
     <h2>5. No External Sharing</h2>
     <p>
-        We do
-        <strong>not</strong> transmit, share, sell, or analyze any of your data on remote servers. There is no external
-        backend or analytics service. All processing and storage occur entirely on your local machine.
+      We do
+      <strong>not</strong> transmit, share, sell, or analyze any of your data on
+      remote servers. There is no external backend or analytics service. All
+      processing and storage occur entirely on your local machine.
     </p>
 
     <h2>6. Security Practices</h2>
     <ul>
-        <li>
-            All code runs locally under the Chrome Extension framework—no remote code execution.
-        </li>
-        <li>
-            The Extension requests only the minimum necessary permissions (
-            <code>storage</code>,
-            <code>webNavigation</code>,
-            <code>activeTab</code>,
-            <code>scripting</code>,
-            <code>notifications</code>, and host access to
-            <code>&lt;all_urls&gt;</code>).
-        </li>
-        <li>
-            Data isolation: information is kept within your Chrome profile and cannot be accessed by other profiles or users.
-        </li>
+      <li>
+        All code runs locally under the Chrome Extension framework—no remote
+        code execution.
+      </li>
+      <li>
+        The Extension requests only the minimum necessary permissions (
+        <code>storage</code>, <code>webNavigation</code>,
+        <code>activeTab</code>, <code>scripting</code>,
+        <code>notifications</code>, and host access to
+        <code>&lt;all_urls&gt;</code>).
+      </li>
+      <li>
+        Data isolation: information is kept within your Chrome profile and
+        cannot be accessed by other profiles or users.
+      </li>
     </ul>
 
     <h2>7. Your Controls & Rights</h2>
     <ul>
-        <li>
-            <strong>Manage tracked sites:</strong> add or remove domains at any time via the popup UI.
-        </li>
-        <li>
-            <strong>Clear data for a site:</strong> clicking "×" next to a domain removes its logs, in-flight entry, and favicon.
-        </li>
-        <li>
-            <strong>Uninstall:</strong> removing the Extension clears
-            <code>chrome.storage.local</code> entirely.
-        </li>
-        <li>
-            <strong>Inspect storage:</strong> browse to DevTools → Application → Storage → Extensions to view raw data.
-        </li>
+      <li>
+        <strong>Manage tracked sites:</strong> add or remove domains at any time
+        via the popup UI.
+      </li>
+      <li>
+        <strong>Clear data for a site:</strong> clicking "×" next to a domain
+        removes its logs, in-flight entry, and favicon.
+      </li>
+      <li>
+        <strong>Uninstall:</strong> removing the Extension clears
+        <code>chrome.storage.local</code> entirely.
+      </li>
+      <li>
+        <strong>Inspect storage:</strong> browse to DevTools → Application →
+        Storage → Extensions to view raw data.
+      </li>
     </ul>
 
     <h2>8. Changes to This Policy</h2>
     <p>
-        We may update this policy to reflect new features or legal requirements. Any changes will be posted here with an updated
-        Effective date. Continued use of the Extension after updates implies your acceptance.
+      We may update this policy to reflect new features or legal requirements.
+      Any changes will be posted here with an updated Effective date. Continued
+      use of the Extension after updates implies your acceptance.
     </p>
 
     <h2>9. Contact</h2>
     <p>
-        For questions or concerns regarding this policy or your data, please contact:
-        <br />
-        <a href="mailto:nikkdiehl+dev@gmail.com">
-            <code>nikkdiehl+dev@gmail.com</code>
-        </a>
+      For questions or concerns regarding this policy or your data, please
+      contact:
+      <br />
+      <a href="mailto:nikkdiehl+dev@gmail.com">
+        <code>nikkdiehl+dev@gmail.com</code>
+      </a>
     </p>
 
     <hr />
     <p class="footer">
-        Load Time Tracker &mdash; Version 1.4.0 &copy; 2025 Nikkolas Diehl
+      Load Time Tracker &mdash; Version 1.4.0 &copy; 2025 Nikkolas Diehl
     </p>
-</body>
+  </body>
 </html>
