@@ -101,9 +101,8 @@ function computeStats(logs, domain) {
     .filter((v) => typeof v === "number" && !isNaN(v));
   const last = arr.length ? arr[arr.length - 1] : 0;
   const avg = arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
-  const p50 = arr.length ? percentile(arr, 50) : 0;
-  const p95 = arr.length ? percentile(arr, 95) : 0;
-  return { last, avg, p50, p95 };
+  const p50 = arr.length ? percentile(arr, 50) : 0; // kept for future use
+  return { last, avg, p50 };
 }
 
 function short(ms) {
@@ -325,7 +324,7 @@ function renderSiteList() {
 
           const canvas = document.createElement("canvas");
           canvas.className = "sparkline";
-          canvas.width = 80;
+          canvas.width = 64;
           canvas.height = 24;
           canvas.dataset.domain = domain;
 
@@ -447,12 +446,10 @@ function updateStats() {
         ].join(" | ");
         statsElement.textContent = stats;
 
-        // Secondary stats: last/p50/p95
+        // Secondary stats: Last only
         const s = computeStats(logs, domain);
         const last = recentLoads[domain] ?? s.last;
-        secondStatsElement.textContent = `Last ${short(last)} · p50 ${short(
-          s.p50
-        )} · p95 ${short(s.p95)}`;
+        secondStatsElement.textContent = `Last ${short(last)}`;
 
         // 7-day sparkline of daily average
         const li = siteList.querySelector(`li[data-domain="${domain}"]`);

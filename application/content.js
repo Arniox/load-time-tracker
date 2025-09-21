@@ -130,9 +130,7 @@
         if (!allowed) return;
         const stats = computeStats(data.logs || [], domain);
         const last = (data.recentLoads || {})[domain] ?? stats.last;
-        const text = `L ${short(last)}  •  avg ${short(
-          stats.avg
-        )}  •  p95 ${short(stats.p95)}`;
+        const text = `L ${short(last)}  •  avg ${short(stats.avg)}`;
         ensureOverlay().textContent = text;
       }
     );
