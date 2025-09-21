@@ -1,11 +1,10 @@
 /* container */
 .container {
-  width: 350px;
-  overflow: hidden;
+  width: 420px;
+  overflow: visible;
   padding: 12px;
   font-family: Arial, sans-serif;
   box-sizing: border-box;
-  overflow: hidden;
   /* Prevent scrollbar from affecting layout */
 }
 
@@ -98,11 +97,12 @@
 .site-list li {
   display: flex;
   align-items: center;
-  background: #fafafa;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  padding: 8px;
-  margin-bottom: 8px;
+  background: #ffffff;
+  border: 1px solid #e6e6e6;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 /* favicon */
@@ -148,10 +148,11 @@
   align-items: center;
   gap: 8px;
   margin-left: 8px;
+  flex-shrink: 0;
 }
 
 .sparkline {
-  width: 80px;
+  width: 64px;
   height: 24px;
 }
 
@@ -165,7 +166,7 @@
   /* bright red */
   color: white;
   font-size: 12px;
-  margin-left: 8px;
+  margin-left: 0;
   cursor: pointer;
   line-height: 1;
   display: flex;
