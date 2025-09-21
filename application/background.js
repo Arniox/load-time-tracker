@@ -1,5 +1,16 @@
 // background.js
 
+// Default user settings
+const DEFAULT_SETTINGS = {
+  overlayGlobal: false,
+  overlayPerDomain: {}, // domain -> boolean
+  anomalyAlertsEnabled: true,
+  anomalyThresholdPercent: 50, // trigger if > mean * (1 + p/100)
+  anomalyStdDevs: 2, // or > mean + k*std
+  anomalyMinSamples: 5,
+  anomalyCooldownMs: 30 * 60 * 1000, // 30 minutes
+};
+
 // Keep only the last 365 days of logs (1 year)
 function pruneOldLogs(logs) {
   const cutoff = Date.now() - 365 * 24 * 60 * 60 * 1000;
@@ -92,6 +103,92 @@ function formatBadgeFinal(ms) {
     return `${hours}.${Math.floor((ms % 3600000) / 60000 / 6)}h`;
   }
   return `${hours}h`;
+}
+
+// Simple percentile computation (values is non-empty array of numbers)
+function percentile(values, p) {
+  if (!values?.length) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  if (p <= 0) return sorted[0];
+  if (p >= 100) return sorted[sorted.length - 1];
+  const rank = (p / 100) * (sorted.length - 1);
+  const low = Math.floor(rank);
+  const high = Math.ceil(rank);
+  if (low === high) return sorted[low];
+  const weight = rank - low;
+  return sorted[low] * (1 - weight) + sorted[high] * weight;
+}
+
+function meanAndStd(values) {
+  if (!values?.length) return { mean: 0, std: 0 };
+  const n = values.length;
+  const mean = values.reduce((a, b) => a + b, 0) / n;
+  const variance =
+    n > 1 ? values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (n - 1) : 0;
+  const std = Math.sqrt(variance);
+  return { mean, std };
+}
+
+function checkAndNotifyAnomaly(domain, loadTime, logs) {
+  // Fetch settings and cooldown map
+  chrome.storage.local.get(
+    { settings: DEFAULT_SETTINGS, lastAnomalyNotify: {} },
+    (data) => {
+      const settings = { ...DEFAULT_SETTINGS, ...(data.settings || {}) };
+      if (!settings.anomalyAlertsEnabled) return;
+      const cooldownMap = { ...(data.lastAnomalyNotify || {}) };
+
+      const now = Date.now();
+      const lastNotified = cooldownMap[domain] || 0;
+      if (now - lastNotified < settings.anomalyCooldownMs) return;
+
+      // Build 14-day baseline excluding most recent event (optional)
+      const cutoff = now - 14 * 24 * 60 * 60 * 1000;
+      const baseline = logs
+        .filter(
+          (r) =>
+            r.domain === domain &&
+            r.timestamp >= cutoff &&
+            now - r.timestamp > 5000 // exclude the most recent few seconds to avoid self-inclusion
+        )
+        .map((r) => r.loadTime)
+        .filter((v) => typeof v === "number" && !isNaN(v));
+
+      if (baseline.length < settings.anomalyMinSamples) return;
+
+      const { mean, std } = meanAndStd(baseline);
+      const p95 = percentile(baseline, 95);
+      const overPct = mean > 0 ? (loadTime - mean) / mean : 0;
+      const thresholdHit =
+        overPct > settings.anomalyThresholdPercent / 100 ||
+        (std > 0 && loadTime > mean + settings.anomalyStdDevs * std);
+
+      if (!thresholdHit) return;
+
+      // Create a user notification
+      try {
+        const seconds = (loadTime / 1000).toFixed(2);
+        const meanSec = (mean / 1000).toFixed(2);
+        const p95Sec = (p95 / 1000).toFixed(2);
+        const message = `Last: ${seconds}s | Baseline avg: ${meanSec}s | p95: ${p95Sec}s`;
+        chrome.notifications.create(
+          `ltt-anom-${domain}-${now}`,
+          {
+            type: "basic",
+            iconUrl: chrome.runtime.getURL("icon-128.png"),
+            title: `Load spike on ${domain}`,
+            message,
+            priority: 1,
+          },
+          () => {}
+        );
+        cooldownMap[domain] = now;
+        chrome.storage.local.set({ lastAnomalyNotify: cooldownMap });
+      } catch (e) {
+        // ignore notification errors
+      }
+    }
+  );
 }
 
 // Track one live timer interval per tab to avoid duplicate/flickering counters
@@ -319,6 +416,9 @@ chrome.webNavigation.onCompleted.addListener((details) => {
 
           chrome.storage.local.set({ currentLoads, logs: pruned, recentLoads });
 
+          // Check anomaly after logging
+          checkAndNotifyAnomaly(domain, loadTime, pruned);
+
           // Update the badge with the final load time for the active tab
           chrome.windows.getCurrent((window) => {
             chrome.tabs.query({ active: true, windowId: window.id }, (tabs) => {
@@ -361,6 +461,9 @@ chrome.webNavigation.onCompleted.addListener((details) => {
           }
 
           chrome.storage.local.set({ currentLoads, logs: pruned, recentLoads });
+
+          // Check anomaly after logging
+          checkAndNotifyAnomaly(domain, loadTime, pruned);
 
           // Update the badge with the final load time for the active tab
           chrome.windows.getCurrent((window) => {
