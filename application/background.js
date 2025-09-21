@@ -17,6 +17,34 @@ function formatDuration(ms) {
   return `${Math.round(h)}h`;
 }
 
+// Track one live timer interval per tab to avoid duplicate/flickering counters
+const tabIntervals = new Map(); // tabId -> { intervalId, domain }
+
+function clearTabInterval(tabId) {
+  const rec = tabIntervals.get(tabId);
+  if (rec && rec.intervalId) {
+    try {
+      clearInterval(rec.intervalId);
+    } catch {}
+  }
+  tabIntervals.delete(tabId);
+}
+
+function removeCurrentLoadForTab(currentLoads, tabId) {
+  let removedDomain = null;
+  for (const domain in currentLoads) {
+    if (currentLoads[domain][tabId]) {
+      delete currentLoads[domain][tabId];
+      if (Object.keys(currentLoads[domain]).length === 0) {
+        delete currentLoads[domain];
+      }
+      removedDomain = domain;
+      break;
+    }
+  }
+  return removedDomain;
+}
+
 // Helper function to clean up dead tabs in currentLoads
 function cleanDeadTabs(currentLoads) {
   chrome.tabs.query({}, (tabs) => {
@@ -38,12 +66,12 @@ function cleanDeadTabs(currentLoads) {
 // 1) On navigation start, stamp the timestamp for live counting
 chrome.webNavigation.onBeforeNavigate.addListener((details) => {
   if (details.frameId !== 0) return; // Ignore subframes
-  const domain = new URL(details.url).hostname;
+  const newDomain = new URL(details.url).hostname;
 
   chrome.storage.local.get(
     { tracked: [], currentLoads: {}, recentLoads: {} },
     (data) => {
-      if (!data.tracked.includes(domain)) return; // Only track if the domain is being tracked
+      const tracked = data.tracked || [];
 
       const currentLoads = { ...data.currentLoads };
       const recentLoads = { ...data.recentLoads };
@@ -51,13 +79,31 @@ chrome.webNavigation.onBeforeNavigate.addListener((details) => {
       // Clean up dead tabs before updating currentLoads
       cleanDeadTabs(currentLoads);
 
-      if (!currentLoads[domain]) {
-        currentLoads[domain] = {}; // Initialize as an object for tab-specific tracking
+      // If this tab had a previous load entry for a different domain, remove it and stop its timer (leaving/redirect)
+      const prevDomain = Object.keys(currentLoads).find(
+        (d) => currentLoads[d][details.tabId]
+      );
+      if (prevDomain && prevDomain !== newDomain) {
+        delete currentLoads[prevDomain][details.tabId];
+        if (Object.keys(currentLoads[prevDomain]).length === 0)
+          delete currentLoads[prevDomain];
+        clearTabInterval(details.tabId);
+        chrome.action.setBadgeText({ text: "" });
       }
-      currentLoads[domain][details.tabId] = Date.now(); // Store timestamp per tab ID
+
+      // Only start a new timer if the new domain is tracked
+      if (!tracked.includes(newDomain)) {
+        chrome.storage.local.set({ currentLoads, recentLoads });
+        return;
+      }
+
+      if (!currentLoads[newDomain]) {
+        currentLoads[newDomain] = {}; // Initialize as an object for tab-specific tracking
+      }
+      currentLoads[newDomain][details.tabId] = Date.now(); // Store timestamp per tab ID
 
       // Clear the recent load time for the domain
-      delete recentLoads[domain];
+      delete recentLoads[newDomain];
 
       // Start the badge counter
       chrome.action.setBadgeBackgroundColor({ color: "#87CEEB" }); // Light blue color for better visibility
@@ -65,7 +111,9 @@ chrome.webNavigation.onBeforeNavigate.addListener((details) => {
       // Save the updated state immediately
       chrome.storage.local.set({ currentLoads, recentLoads });
 
-      const startTime = currentLoads[domain][details.tabId];
+      const startTime = currentLoads[newDomain][details.tabId];
+      // Ensure we only have one live interval per tab
+      clearTabInterval(details.tabId);
       const intervalId = setInterval(() => {
         const now = Date.now();
         const elapsed = now - startTime;
@@ -83,11 +131,14 @@ chrome.webNavigation.onBeforeNavigate.addListener((details) => {
 
         // Check if navigation is still in progress
         chrome.storage.local.get({ currentLoads: {} }, (updatedData) => {
-          if (!updatedData.currentLoads[domain]?.[details.tabId]) {
+          if (!updatedData.currentLoads[newDomain]?.[details.tabId]) {
             clearInterval(intervalId); // Stop updating if navigation is complete
+            clearTabInterval(details.tabId);
           }
         });
       }, 100); // Update every 100ms
+
+      tabIntervals.set(details.tabId, { intervalId, domain: newDomain });
     }
   );
 });
@@ -109,7 +160,22 @@ chrome.webNavigation.onCommitted.addListener((details) => {
         chrome.storage.local.set({ currentLoads });
         // Optionally clear badge for this tab
         chrome.action.setBadgeText({ text: "" });
+        clearTabInterval(details.tabId);
       }
+    }
+  });
+});
+
+// Stop and discard if navigation aborted (network error or user cancel)
+chrome.webNavigation.onErrorOccurred.addListener((details) => {
+  if (details.frameId !== 0) return; // Ignore subframes
+  chrome.storage.local.get({ currentLoads: {} }, (data) => {
+    const currentLoads = { ...data.currentLoads };
+    const removedDomain = removeCurrentLoadForTab(currentLoads, details.tabId);
+    if (removedDomain) {
+      chrome.storage.local.set({ currentLoads });
+      clearTabInterval(details.tabId);
+      chrome.action.setBadgeText({ text: "" });
     }
   });
 });
@@ -178,11 +244,14 @@ chrome.webNavigation.onCompleted.addListener((details) => {
             chrome.tabs.query({ active: true, windowId: window.id }, (tabs) => {
               tabs.forEach((tab) => {
                 if (tab.id === details.tabId) {
-                  chrome.action.setBadgeText({ text: formatDuration(elapsed) });
+                  chrome.action.setBadgeText({
+                    text: formatDuration(loadTime),
+                  });
                 }
               });
             });
           });
+          clearTabInterval(details.tabId);
         })
         .catch(() => {
           // In the unlikely event scripting.executeScript fails,
@@ -217,11 +286,14 @@ chrome.webNavigation.onCompleted.addListener((details) => {
             chrome.tabs.query({ active: true, windowId: window.id }, (tabs) => {
               tabs.forEach((tab) => {
                 if (tab.id === details.tabId) {
-                  chrome.action.setBadgeText({ text: formatDuration(elapsed) });
+                  chrome.action.setBadgeText({
+                    text: formatDuration(loadTime),
+                  });
                 }
               });
             });
           });
+          clearTabInterval(details.tabId);
         });
     }
   );
@@ -283,4 +355,22 @@ chrome.tabs.onRemoved.addListener((tabId) => {
       chrome.action.setBadgeText({ text: "" });
     }
   });
+  clearTabInterval(tabId);
+});
+
+// Handle prerender/Instant Pages tab replacement
+chrome.webNavigation.onTabReplaced.addListener((details) => {
+  // details.replacedTabId was replaced by details.tabId
+  chrome.storage.local.get({ currentLoads: {} }, (data) => {
+    const currentLoads = { ...data.currentLoads };
+    const removedDomain = removeCurrentLoadForTab(
+      currentLoads,
+      details.replacedTabId
+    );
+    if (removedDomain) {
+      chrome.storage.local.set({ currentLoads });
+    }
+  });
+  clearTabInterval(details.replacedTabId);
+  chrome.action.setBadgeText({ text: "" });
 });
