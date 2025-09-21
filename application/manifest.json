@@ -1,40 +1,29 @@
 {
-    "manifest_version": 3,
-    "name": "Load Time Tracker",
-    "version": "1.2.0",
-    "description": "Track and aggregate page-load times for selected sites, now with yearly stats.",
-    "icons": {
-        "48": "icon-48.png",
-        "128": "icon-128.png"
-    },
-    "action": {
-        "default_popup": "popup.html",
-        "default_icon": "icon-48.png"
-    },
-    "content_scripts": [
-        {
-            "matches": [
-                "<all_urls>"
-            ],
-            "js": [
-                "content.js"
-            ],
-            "run_at": "document_end"
-        }
-    ],
-    "permissions": [
-        "storage",
-        "webNavigation",
-        "activeTab",
-        "scripting"
-    ],
-    "host_permissions": [
-        "<all_urls>"
-    ],
-    "background": {
-        "service_worker": "background.js"
-    },
-    "offline_enabled": true,
-    "minimum_chrome_version": "96.0",
-    "homepage_url": "https://github.com/Arniox/load-time-tracker"
+  "manifest_version": 3,
+  "name": "Load Time Tracker",
+  "version": "1.3.0",
+  "description": "Track and aggregate page-load times for selected sites, now with yearly stats.",
+  "icons": {
+    "48": "icon-48.png",
+    "128": "icon-128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon-48.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "permissions": ["storage", "webNavigation", "activeTab", "scripting"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "offline_enabled": true,
+  "minimum_chrome_version": "96.0",
+  "homepage_url": "https://github.com/Arniox/load-time-tracker"
 }

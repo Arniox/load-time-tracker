@@ -1,6 +1,6 @@
 # Load Time Tracker
 
-**Version 1.2.0** • *June 9, 2025*
+**Version 1.3.0** • _September 22, 2025_
 
 > Measure, visualize & optimize your page-load performance—live, right from your browser toolbar.
 
@@ -39,11 +39,13 @@ Load Time Tracker is a lightweight Chrome extension crafted for developers and Q
 You can install Load Time Tracker in two ways:
 
 ### **Option 1: Install from the Chrome Web Store**
+
 1. Visit the [Chrome Web Store page](https://chromewebstore.google.com/detail/fiphipojeggbbkakmeecjdnombobihcc?utm_source=item-share-cb).
 2. Click **Add to Chrome**.
 3. The Load Time Tracker icon will appear in your toolbar—click to open the popup and start tracking.
 
 ### **Option 2: Manual Installation**
+
 1. **Download** the latest release ZIP (`application.zip`) from this repository’s [Releases](https://github.com/Arniox/load-time-tracker/releases).
 2. **Unzip** the file to a local folder.
 3. In Chrome, navigate to **chrome://extensions** and enable **Developer mode**.
