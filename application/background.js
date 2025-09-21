@@ -17,6 +17,83 @@ function formatDuration(ms) {
   return `${Math.round(h)}h`;
 }
 
+// Spinner frames for live animation (single glyph to keep within width)
+const spinnerFrames = ["", "·", "•", "·"]; // cycles to show motion without widening
+
+// Returns a compact, animated badge text (<= 4 chars) for live display
+function formatBadgeLive(ms) {
+  if (ms == null || isNaN(ms)) return "";
+  const frame =
+    spinnerFrames[Math.floor(Date.now() / 250) % spinnerFrames.length];
+
+  // < 10s: show s.t with unit, e.g., 9.9s (max 4 chars)
+  if (ms < 10000) {
+    const s = (ms / 1000).toFixed(1); // 0.0 - 9.9
+    return `${s}s`; // e.g., "9.9s"
+  }
+
+  // 10s - < 60s: ss + unit + spinner, e.g., 10s•
+  if (ms < 60000) {
+    const secs = Math.floor(ms / 1000);
+    const base = `${secs}s`;
+    // Ensure max 4 chars
+    return base.length < 4 ? `${base}${frame}` : base;
+  }
+
+  // < 1h: minutes
+  const totalSecs = Math.floor(ms / 1000);
+  const mins = Math.floor(totalSecs / 60);
+  const secsPart = totalSecs % 60;
+
+  if (mins < 10) {
+    // Use m.d m (seconds grouped into 10 buckets), e.g., 3.4m (4 chars)
+    const tenth = Math.floor(secsPart / 6); // 0..9
+    return `${mins}.${tenth}m`;
+  } else if (mins < 100) {
+    // 10m..99m: show mm m + spinner, e.g., 12m• (<=4 chars)
+    const base = `${mins}m`;
+    return base.length < 4 ? `${base}${frame}` : base;
+  } else {
+    // 100m+: fallback to hours formatting below
+  }
+
+  // >= 1h: hours
+  const hours = Math.floor(ms / 3600000);
+  const minsPart = Math.floor((ms % 3600000) / 60000);
+  if (hours < 10) {
+    // h.d h (minutes into 10 buckets), e.g., 1.2h
+    const tenth = Math.floor(minsPart / 6); // 0..9
+    return `${hours}.${tenth}h`;
+  }
+  const base = `${hours}h`;
+  return base.length < 4 ? `${base}${frame}` : base;
+}
+
+// Returns a compact, static badge text (<= 4 chars) for final display
+function formatBadgeFinal(ms) {
+  if (ms == null || isNaN(ms)) return "";
+  if (ms < 10000) {
+    return `${(ms / 1000).toFixed(1)}s`;
+  }
+  if (ms < 60000) {
+    return `${Math.floor(ms / 1000)}s`;
+  }
+  const totalSecs = Math.floor(ms / 1000);
+  const mins = Math.floor(totalSecs / 60);
+  const secsPart = totalSecs % 60;
+  if (mins < 10) {
+    return `${mins}.${Math.floor(secsPart / 6)}m`; // 3.4m
+  }
+  if (mins < 100) {
+    return `${mins}m`; // 12m
+  }
+  const hours = Math.floor(ms / 3600000);
+  if (hours < 10) {
+    return `${hours}.${Math.floor((ms % 3600000) / 60000 / 6)}h`;
+  }
+  return `${hours}h`;
+}
+
 // Track one live timer interval per tab to avoid duplicate/flickering counters
 const tabIntervals = new Map(); // tabId -> { intervalId, domain }
 
@@ -88,7 +165,7 @@ chrome.webNavigation.onBeforeNavigate.addListener((details) => {
         if (Object.keys(currentLoads[prevDomain]).length === 0)
           delete currentLoads[prevDomain];
         clearTabInterval(details.tabId);
-        chrome.action.setBadgeText({ text: "" });
+        chrome.action.setBadgeText({ text: "", tabId: details.tabId });
       }
 
       // Only start a new timer if the new domain is tracked
@@ -123,7 +200,10 @@ chrome.webNavigation.onBeforeNavigate.addListener((details) => {
           chrome.tabs.query({ active: true, windowId: window.id }, (tabs) => {
             tabs.forEach((tab) => {
               if (tab.id === details.tabId) {
-                chrome.action.setBadgeText({ text: formatDuration(elapsed) });
+                chrome.action.setBadgeText({
+                  text: formatBadgeLive(elapsed),
+                  tabId: details.tabId,
+                });
               }
             });
           });
@@ -159,7 +239,7 @@ chrome.webNavigation.onCommitted.addListener((details) => {
         }
         chrome.storage.local.set({ currentLoads });
         // Optionally clear badge for this tab
-        chrome.action.setBadgeText({ text: "" });
+        chrome.action.setBadgeText({ text: "", tabId: details.tabId });
         clearTabInterval(details.tabId);
       }
     }
@@ -175,7 +255,7 @@ chrome.webNavigation.onErrorOccurred.addListener((details) => {
     if (removedDomain) {
       chrome.storage.local.set({ currentLoads });
       clearTabInterval(details.tabId);
-      chrome.action.setBadgeText({ text: "" });
+      chrome.action.setBadgeText({ text: "", tabId: details.tabId });
     }
   });
 });
@@ -245,7 +325,8 @@ chrome.webNavigation.onCompleted.addListener((details) => {
               tabs.forEach((tab) => {
                 if (tab.id === details.tabId) {
                   chrome.action.setBadgeText({
-                    text: formatDuration(loadTime),
+                    text: formatBadgeFinal(loadTime),
+                    tabId: details.tabId,
                   });
                 }
               });
@@ -287,7 +368,8 @@ chrome.webNavigation.onCompleted.addListener((details) => {
               tabs.forEach((tab) => {
                 if (tab.id === details.tabId) {
                   chrome.action.setBadgeText({
-                    text: formatDuration(loadTime),
+                    text: formatBadgeFinal(loadTime),
+                    tabId: details.tabId,
                   });
                 }
               });
@@ -372,5 +454,5 @@ chrome.webNavigation.onTabReplaced.addListener((details) => {
     }
   });
   clearTabInterval(details.replacedTabId);
-  chrome.action.setBadgeText({ text: "" });
+  chrome.action.setBadgeText({ text: "", tabId: details.replacedTabId });
 });
