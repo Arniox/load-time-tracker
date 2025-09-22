@@ -123,9 +123,8 @@
       { settings: {}, logs: [], recentLoads: {} },
       (data) => {
         const settings = data.settings || {};
-        const globalOn = !!settings.overlayGlobal;
         const per = settings.overlayPerDomain || {};
-        const allowed = per.hasOwnProperty(domain) ? !!per[domain] : globalOn;
+        const allowed = !!per[domain];
         setOverlayVisibility(allowed);
         if (!allowed) return;
         const stats = computeStats(data.logs || [], domain);

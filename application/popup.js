@@ -314,12 +314,11 @@ function renderSiteList() {
       // Initialize global overlay button (mass toggle all per-domain flags)
       if (overlayGlobalBtn) {
         const refreshBtnState = (tracked, per) => {
-          const allOn =
-            tracked.length > 0 && tracked.every((d) => per && per[d]);
-          overlayGlobalBtn.classList.toggle("on", allOn);
+          const anyOn = tracked.some((d) => per && per[d]);
+          overlayGlobalBtn.classList.toggle("on", anyOn);
           overlayGlobalBtn.setAttribute(
             "aria-pressed",
-            allOn ? "true" : "false"
+            anyOn ? "true" : "false"
           );
         };
 
@@ -330,15 +329,29 @@ function renderSiteList() {
             { tracked: [], settings: {} },
             ({ tracked, settings }) => {
               const per = { ...(settings.overlayPerDomain || {}) };
-              const allOn = tracked.length > 0 && tracked.every((d) => per[d]);
-              const nextVal = !allOn;
+              const anyOn = tracked.some((d) => per[d]);
+              const nextVal = !anyOn; // if any are on, turn all off; otherwise, turn all on
               tracked.forEach((d) => {
                 per[d] = nextVal;
               });
               chrome.storage.local.set(
                 { settings: { ...settings, overlayPerDomain: per } },
                 () => {
+                  // Update global button based on new state (anyOn after change === nextVal if tracked not empty)
                   refreshBtnState(tracked, per);
+                  // Immediately reflect visual state of all per-domain buttons
+                  tracked.forEach((d) => {
+                    const btn = siteList.querySelector(
+                      `li[data-domain="${d}"] .overlayToggleBtn`
+                    );
+                    if (btn) {
+                      btn.classList.toggle("on", !!per[d]);
+                      btn.setAttribute(
+                        "aria-pressed",
+                        per[d] ? "true" : "false"
+                      );
+                    }
+                  });
                 }
               );
             }
@@ -417,14 +430,13 @@ function renderSiteList() {
                   { settings: { ...settings, overlayPerDomain: per } },
                   () => {
                     setOverlayBtn(newVal);
-                    // Reflect change in global button: on only if all tracked are on
+                    // Reflect change in global button: ON if any tracked are ON; OFF if all are OFF
                     if (overlayGlobalBtn) {
-                      const allOn =
-                        tracked.length > 0 && tracked.every((d) => per[d]);
-                      overlayGlobalBtn.classList.toggle("on", allOn);
+                      const anyOn = tracked.some((d) => per[d]);
+                      overlayGlobalBtn.classList.toggle("on", anyOn);
                       overlayGlobalBtn.setAttribute(
                         "aria-pressed",
-                        allOn ? "true" : "false"
+                        anyOn ? "true" : "false"
                       );
                     }
                   }
