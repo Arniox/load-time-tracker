@@ -120,6 +120,14 @@ function drawSparkline(canvas, rawPoints) {
     h = canvas.height;
 
   ctx.clearRect(0, 0, w, h);
+  // Draw a baseline at the vertical middle so the sparkline never looks empty
+  ctx.beginPath();
+  ctx.moveTo(0, Math.floor(h / 2) + 0.5);
+  ctx.lineTo(w, Math.floor(h / 2) + 0.5);
+  ctx.strokeStyle = "#e0e0e0";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
   if (!rawPoints || rawPoints.length === 0) return;
 
   // Visual constants
