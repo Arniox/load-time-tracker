@@ -170,7 +170,7 @@ function checkAndNotifyAnomaly(domain, loadTime, logs) {
         const seconds = (loadTime / 1000).toFixed(2);
         const meanSec = (mean / 1000).toFixed(2);
         const p95Sec = (p95 / 1000).toFixed(2);
-        const message = `Last: ${seconds}s | Baseline avg: ${meanSec}s | p95: ${p95Sec}s`;
+        const message = `Last: ${seconds}s | Baseline avg: ${meanSec}s`;
         chrome.notifications.create(
           `ltt-anom-${domain}-${now}`,
           {
