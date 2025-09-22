@@ -558,6 +558,8 @@ function updateStats() {
 
         // Secondary stats: Last • Avg (to mirror the overlay)
         const s = computeStats(logs, domain);
+        // Use recentLoads[domain] if available (i.e., if a recent load is recorded for this domain),
+        // otherwise fall back to s.last (the last load time from logs).
         const last = recentLoads[domain] ?? s.last;
         secondStatsElement.textContent = `Last ${short(last)}  •  Avg ${short(
           s.avg
