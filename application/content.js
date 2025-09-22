@@ -96,18 +96,10 @@
       .filter((r) => r.domain === domain)
       .map((r) => r.loadTime)
       .filter((x) => typeof x === "number" && !isNaN(x));
-    if (!ds.length) return { last: null, avg: null, p95: null };
+    if (!ds.length) return { last: null, avg: null };
     const last = ds[ds.length - 1];
     const avg = ds.reduce((a, b) => a + b, 0) / ds.length;
-    const sorted = [...ds].sort((a, b) => a - b);
-    const rank = 0.95 * (sorted.length - 1);
-    const lo = Math.floor(rank),
-      hi = Math.ceil(rank);
-    const p95 =
-      lo === hi
-        ? sorted[lo]
-        : sorted[lo] * (1 - (rank - lo)) + sorted[hi] * (rank - lo);
-    return { last, avg, p95 };
+    return { last, avg };
   }
 
   function short(ms) {
