@@ -556,10 +556,12 @@ function updateStats() {
         ].join(" | ");
         statsElement.textContent = stats;
 
-        // Secondary stats: Last only
+        // Secondary stats: Last • Avg (to mirror the overlay)
         const s = computeStats(logs, domain);
         const last = recentLoads[domain] ?? s.last;
-        secondStatsElement.textContent = `Last ${short(last)}`;
+        secondStatsElement.textContent = `Last ${short(last)}  •  Avg ${short(
+          s.avg
+        )}`;
 
         // Sparkline of the last X loads (right-aligned, dynamic 2–5px spacing)
         const li = siteList.querySelector(`li[data-domain="${domain}"]`);
