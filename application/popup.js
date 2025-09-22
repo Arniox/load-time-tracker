@@ -2,7 +2,7 @@
 
 const siteList = document.getElementById("siteList");
 const addBtn = document.getElementById("addBtn");
-const overlayGlobalToggle = document.getElementById("overlayGlobalToggle");
+const overlayGlobalBtn = document.getElementById("overlayGlobalBtn");
 let running = true;
 
 //
@@ -311,16 +311,20 @@ function renderSiteList() {
       const currentLoads = data.currentLoads || {};
       const settings = data.settings || {};
 
-      // Initialize global overlay toggle
-      if (overlayGlobalToggle) {
-        overlayGlobalToggle.checked = !!settings.overlayGlobal;
-        overlayGlobalToggle.onchange = () => {
+      // Initialize global overlay button
+      if (overlayGlobalBtn) {
+        const setBtnState = (on) => {
+          overlayGlobalBtn.classList.toggle("on", !!on);
+          overlayGlobalBtn.setAttribute("aria-pressed", on ? "true" : "false");
+        };
+        setBtnState(!!settings.overlayGlobal);
+        overlayGlobalBtn.onclick = () => {
           chrome.storage.local.get({ settings: {} }, ({ settings }) => {
-            const next = {
-              ...settings,
-              overlayGlobal: overlayGlobalToggle.checked,
-            };
-            chrome.storage.local.set({ settings: next });
+            const newVal = !settings.overlayGlobal;
+            const next = { ...settings, overlayGlobal: newVal };
+            chrome.storage.local.set({ settings: next }, () => {
+              setBtnState(newVal);
+            });
           });
         };
       }
@@ -375,19 +379,25 @@ function renderSiteList() {
           canvas.height = 24;
           canvas.dataset.domain = domain;
 
-          const overlayToggle = document.createElement("input");
-          overlayToggle.type = "checkbox";
+          const overlayToggle = document.createElement("button");
+          overlayToggle.className = "overlayToggleBtn";
           overlayToggle.title = "Overlay on this domain";
-          overlayToggle.checked = !!(
-            settings.overlayPerDomain && settings.overlayPerDomain[domain]
+          const setOverlayBtn = (on) => {
+            overlayToggle.classList.toggle("on", !!on);
+            overlayToggle.setAttribute("aria-pressed", on ? "true" : "false");
+          };
+          setOverlayBtn(
+            !!(settings.overlayPerDomain && settings.overlayPerDomain[domain])
           );
-          overlayToggle.addEventListener("change", () => {
+          overlayToggle.addEventListener("click", () => {
             chrome.storage.local.get({ settings: {} }, ({ settings }) => {
               const per = { ...(settings.overlayPerDomain || {}) };
-              per[domain] = overlayToggle.checked;
-              chrome.storage.local.set({
-                settings: { ...settings, overlayPerDomain: per },
-              });
+              const newVal = !per[domain];
+              per[domain] = newVal;
+              chrome.storage.local.set(
+                { settings: { ...settings, overlayPerDomain: per } },
+                () => setOverlayBtn(newVal)
+              );
             });
           });
 

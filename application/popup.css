@@ -34,7 +34,7 @@
   /* Minimal spacing above and below */
 }
 
-/* Position the add button to the top-right corner */
+/* Position the add/overlay buttons to the top-right corner */
 #addBtn {
   position: absolute;
   top: 0;
@@ -55,6 +55,41 @@
 
 #addBtn:hover {
   background-color: #45a049;
+}
+
+/* Global overlay circular toggle button */
+#overlayGlobalBtn.overlayBtn {
+  position: absolute;
+  top: 0;
+  right: 32px; /* to the left of the add button */
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid #ccc; /* off state border */
+  background-color: #fff; /* off state background */
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+  font-size: 14px;
+  color: #777; /* icon color off */
+}
+
+#overlayGlobalBtn.overlayBtn.on {
+  background-color: #e0e0e0; /* gray when on */
+  border-color: transparent;
+  color: #333; /* darker icon color */
+}
+
+#overlayGlobalBtn.overlayBtn::before {
+  content: "◉"; /* simple icon */
+  line-height: 1;
+}
+
+#overlayGlobalBtn.overlayBtn.on::before {
+  content: "◎";
 }
 
 /* list styling */
@@ -154,6 +189,38 @@
 .sparkline {
   width: 64px;
   height: 24px;
+}
+
+/* Per-domain overlay toggle button (small circular) */
+.overlayToggleBtn {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid #ccc; /* off */
+  background-color: #fff; /* off */
+  color: #777;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.overlayToggleBtn::before {
+  content: "◉";
+}
+
+.overlayToggleBtn.on {
+  background-color: #e0e0e0; /* on */
+  border-color: transparent;
+  color: #333;
+}
+
+.overlayToggleBtn.on::before {
+  content: "◎";
 }
 
 /* remove-button - updated to be a red circle */
