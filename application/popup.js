@@ -101,7 +101,7 @@ function computeStats(logs, domain) {
     .filter((v) => typeof v === "number" && !isNaN(v));
   const last = arr.length ? arr[arr.length - 1] : 0;
   const avg = arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
-  const p50 = arr.length ? percentile(arr, 50) : 0; // kept for future use
+  const p50 = arr.length ? percentile(arr, 50) : 0; // included in return value for future use or API stability
   return { last, avg, p50 };
 }
 
