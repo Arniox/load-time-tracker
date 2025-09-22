@@ -107,23 +107,22 @@
         loading completes.
       </li>
       <li>
-        Compute and display
-        <strong>sliding-window aggregates</strong>: total load time over the
-        last hour, day, week, and month.
+  Compute and display
+  <strong>sliding-window aggregates</strong>: total load time over the
+  last hour, day, week, month, and year.
       </li>
       <li>
-        Show per-site statistics in the popup, including last load duration,
-        average load time, and reload count.
+  Show per-site statistics in the popup, including last load duration,
+  average load time, and a compact sparkline of recent loads.
       </li>
       <li>
-        Provide optional <strong>local system notifications</strong> when a
-        recent load appears anomalously slow compared to your recent 14‑day
-        baseline. These notifications are generated entirely on-device; no data
-        is transmitted externally.
+  Provide optional <strong>local system notifications</strong> when a
+  recent load appears anomalously slow compared to your recent 14‑day
+  baseline (configurable thresholds and cooldown). These notifications are
+  generated entirely on-device; no data is transmitted externally.
       </li>
       <li>
-        Prune logs older than 30 days automatically to keep your data fresh and
-        storage usage minimal.
+  Show an optional on-page overlay chip (per-domain) with “Last • Avg”.
       </li>
       <li>Render each site's favicon for easy recognition.</li>
     </ul>
@@ -132,8 +131,8 @@
     <p>
       All data is stored in
       <code>chrome.storage.local</code> under your profile. No data leaves your
-      device. Records older than <strong>365 days</strong> are automatically
-      pruned by the Extension on each new load event.
+  device. Records older than <strong>365 days</strong> are automatically
+  pruned by the Extension.
     </p>
 
     <h2>5. No External Sharing</h2>
