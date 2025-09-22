@@ -1,6 +1,6 @@
 # Load Time Tracker
 
-**Version 1.3.0** • _September 22, 2025_
+**Version 1.4.0** • _September 22, 2025_
 
 > Measure, visualize & optimize your page-load performance—live, right from your browser toolbar.
 
@@ -21,9 +21,9 @@ Load Time Tracker is a lightweight Chrome extension crafted for developers and Q
 - **Per-site insights**: In the popup, view for each domain:
   - **Now**: live or most recent load duration (aggregates across multiple tabs for the same domain).
   - **Avg**: average load time across recorded loads.
-  - **Reloads**: total number of logged load events.
   - **H / D / W / M / Y**: total load time over sliding windows (Hour, Day, Week, Month, Year).
-- **Global totals**: Combined H/D/W/M summary for all monitored domains.
+  - **Sparkline**: a compact trendline of the last X loads (right-aligned, with subtle left fade).
+- **Global totals**: Combined H/D/W/M/**Y** summary for all monitored domains.
 - **Favicon scraping**: Displays each site’s real favicon (harvested from `<link rel="icon">`).
 - **Automatic pruning**: Logs older than 1 year are cleared to keep storage usage minimal.
 - **Robust multi-tab handling**:
@@ -31,6 +31,12 @@ Load Time Tracker is a lightweight Chrome extension crafted for developers and Q
   - Automatically stops tracking when the last tab for a domain is closed.
 - **Dead tab cleanup**: Automatically clears stuck counters for tabs that no longer exist.
 - **Privacy-first storage**: Everything lives in `chrome.storage.local` under your profile.
+
+### New in 1.4.0
+
+- **On-page overlay chip**: Optional, per-domain overlay that shows “Last • Avg” while you browse. Toggle per domain in the popup; use the global overlay button to mass-toggle all domains on/off.
+- **Anomaly alerts (optional)**: Local-only notifications when a load deviates from your 14‑day baseline (percent and standard-deviation thresholds with cooldown).
+- **Popup sparklines**: Each domain gets a trendline of its most recent loads (right-aligned; dynamic spacing; subtle left fade). The secondary stats now show “Last • Avg” to match the overlay.
 
 ---
 
