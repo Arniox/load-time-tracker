@@ -1,6 +1,6 @@
 # Load Time Tracker
 
-**Version 1.4.0** • _September 22, 2025_
+**Version 1.4.1** • _September 22, 2025_
 
 > Measure, visualize & optimize your page-load performance—live, right from your browser toolbar.
 
@@ -31,6 +31,11 @@ Load Time Tracker is a lightweight Chrome extension crafted for developers and Q
   - Automatically stops tracking when the last tab for a domain is closed.
 - **Dead tab cleanup**: Automatically clears stuck counters for tabs that no longer exist.
 - **Privacy-first storage**: Everything lives in `chrome.storage.local` under your profile.
+
+### New in 1.4.1
+
+- **Richer secondary stats (popup & overlay)**: Now shows “Now • Last • Avg • Reloads” for each domain. “Now” mirrors the live badge and aggregates in-flight loads across multiple tabs for the same domain. “Reloads” is the total number of recorded loads and is now displayed with thousands separators for readability.
+- **Consistency polish**: The popup and on-page overlay now present identical secondary metrics and formatting so you see the same story wherever you look.
 
 ### New in 1.4.0
 
@@ -86,9 +91,11 @@ YourRepo/
 1. Click the toolbar icon and press **＋** to add the current site’s domain.
 2. **Refresh** the page—observe the live badge timer increment in real time.
 3. Open the popup to see:
-   - **Now**: current in-flight or last load duration (aggregates across all tabs for the same domain).
-   - **H / D / W / M / Y**: total load time over sliding windows.
-   - **Avg** and **Reloads** counts per domain.
+
+- **Now**: current in-flight or last load duration (aggregates across all tabs for the same domain).
+- **H / D / W / M / Y**: total load time over sliding windows.
+- **Secondary stats**: “Now • Last • Avg • Reloads”, with Reloads formatted using thousands separators.
+
 4. Remove a site by clicking the **×** next to its entry—this deletes all associated logs.
 
 ---
