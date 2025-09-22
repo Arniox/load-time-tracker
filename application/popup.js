@@ -395,19 +395,21 @@ function renderSiteList() {
           secondStatsSpan.className = "secondary-stats";
           secondStatsSpan.dataset.domain = domain;
 
-          info.appendChild(domainSpan);
-          info.appendChild(statsSpan);
-          info.appendChild(secondStatsSpan);
-
-          // Right side controls: sparkline + overlay toggle + remove
-          const right = document.createElement("div");
-          right.className = "right-side";
-
+          // Sparkline:
           const canvas = document.createElement("canvas");
           canvas.className = "sparkline";
           canvas.width = 64;
           canvas.height = 24;
           canvas.dataset.domain = domain;
+
+          info.appendChild(domainSpan);
+          info.appendChild(statsSpan);
+          info.appendChild(canvas);
+          info.appendChild(secondStatsSpan);
+
+          // Right side controls: overlay toggle + remove
+          const right = document.createElement("div");
+          right.className = "right-side";
 
           const overlayToggle = document.createElement("button");
           overlayToggle.className = "overlayToggleBtn";
@@ -458,7 +460,6 @@ function renderSiteList() {
             return false;
           });
 
-          right.appendChild(canvas);
           right.appendChild(overlayToggle);
           right.appendChild(rm);
 
