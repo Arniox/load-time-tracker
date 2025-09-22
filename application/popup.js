@@ -556,14 +556,15 @@ function updateStats() {
         ].join(" | ");
         statsElement.textContent = stats;
 
-        // Secondary stats: Last • Avg (to mirror the overlay)
+        // Secondary stats: Now • Last • Avg • Reloads
         const s = computeStats(logs, domain);
-        // Use recentLoads[domain] if available (i.e., if a recent load is recorded for this domain),
-        // otherwise fall back to s.last (the last load time from logs).
         const last = recentLoads[domain] ?? s.last;
-        secondStatsElement.textContent = `Last ${short(last)}  •  Avg ${short(
-          s.avg
-        )}`;
+        const reloads = logs.filter((r) => r.domain === domain).length;
+        const reloadsFmt = reloads.toLocaleString();
+        const nowMs = nowTime > 0 ? nowTime : recentLoads[domain] ?? 0;
+        secondStatsElement.textContent = `Now ${short(nowMs)}  •  Last ${short(
+          last
+        )}  •  Avg ${short(s.avg)}  •  Reloads ${reloadsFmt}`;
 
         // Sparkline of the last X loads (right-aligned, dynamic 2–5px spacing)
         const li = siteList.querySelector(`li[data-domain="${domain}"]`);

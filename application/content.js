@@ -92,14 +92,15 @@
   }
 
   function computeStats(logs, domain) {
-    const ds = logs
-      .filter((r) => r.domain === domain)
+    const domainLogs = logs.filter((r) => r.domain === domain);
+    const ds = domainLogs
       .map((r) => r.loadTime)
       .filter((x) => typeof x === "number" && !isNaN(x));
-    if (!ds.length) return { last: null, avg: null };
+    const reloads = domainLogs.length;
+    if (!ds.length) return { last: null, avg: null, reloads };
     const last = ds[ds.length - 1];
     const avg = ds.reduce((a, b) => a + b, 0) / ds.length;
-    return { last, avg };
+    return { last, avg, reloads };
   }
 
   function short(ms) {
@@ -112,7 +113,7 @@
 
   function refreshOverlay() {
     chrome.storage.local.get(
-      { settings: {}, logs: [], recentLoads: {} },
+      { settings: {}, logs: [], recentLoads: {}, currentLoads: {} },
       (data) => {
         const settings = data.settings || {};
         const per = settings.overlayPerDomain || {};
@@ -121,7 +122,24 @@
         if (!allowed) return;
         const stats = computeStats(data.logs || [], domain);
         const last = (data.recentLoads || {})[domain] ?? stats.last;
-        const text = `Last ${short(last)}  •  Avg ${short(stats.avg)}`;
+        // Compute Now using live currentLoads across tabs or fallback to recentLoads
+        const now = Date.now();
+        let nowMs = 0;
+        const domainLoads = (data.currentLoads || {})[domain];
+        if (domainLoads) {
+          Object.values(domainLoads).forEach((startTime) => {
+            if (typeof startTime === "number") {
+              nowMs += now - startTime;
+            }
+          });
+        } else if ((data.recentLoads || {})[domain]) {
+          nowMs = (data.recentLoads || {})[domain];
+        }
+        const text = `Now ${short(nowMs)}  •  Last ${short(
+          last
+        )}  •  Avg ${short(
+          stats.avg
+        )}  •  Reloads ${stats.reloads.toLocaleString()}`;
         ensureOverlay().textContent = text;
       }
     );
