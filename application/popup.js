@@ -311,21 +311,38 @@ function renderSiteList() {
       const currentLoads = data.currentLoads || {};
       const settings = data.settings || {};
 
-      // Initialize global overlay button
+      // Initialize global overlay button (mass toggle all per-domain flags)
       if (overlayGlobalBtn) {
-        const setBtnState = (on) => {
-          overlayGlobalBtn.classList.toggle("on", !!on);
-          overlayGlobalBtn.setAttribute("aria-pressed", on ? "true" : "false");
+        const refreshBtnState = (tracked, per) => {
+          const allOn =
+            tracked.length > 0 && tracked.every((d) => per && per[d]);
+          overlayGlobalBtn.classList.toggle("on", allOn);
+          overlayGlobalBtn.setAttribute(
+            "aria-pressed",
+            allOn ? "true" : "false"
+          );
         };
-        setBtnState(!!settings.overlayGlobal);
+
+        refreshBtnState(tracked, settings.overlayPerDomain || {});
+
         overlayGlobalBtn.onclick = () => {
-          chrome.storage.local.get({ settings: {} }, ({ settings }) => {
-            const newVal = !settings.overlayGlobal;
-            const next = { ...settings, overlayGlobal: newVal };
-            chrome.storage.local.set({ settings: next }, () => {
-              setBtnState(newVal);
-            });
-          });
+          chrome.storage.local.get(
+            { tracked: [], settings: {} },
+            ({ tracked, settings }) => {
+              const per = { ...(settings.overlayPerDomain || {}) };
+              const allOn = tracked.length > 0 && tracked.every((d) => per[d]);
+              const nextVal = !allOn;
+              tracked.forEach((d) => {
+                per[d] = nextVal;
+              });
+              chrome.storage.local.set(
+                { settings: { ...settings, overlayPerDomain: per } },
+                () => {
+                  refreshBtnState(tracked, per);
+                }
+              );
+            }
+          );
         };
       }
 
@@ -390,15 +407,30 @@ function renderSiteList() {
             !!(settings.overlayPerDomain && settings.overlayPerDomain[domain])
           );
           overlayToggle.addEventListener("click", () => {
-            chrome.storage.local.get({ settings: {} }, ({ settings }) => {
-              const per = { ...(settings.overlayPerDomain || {}) };
-              const newVal = !per[domain];
-              per[domain] = newVal;
-              chrome.storage.local.set(
-                { settings: { ...settings, overlayPerDomain: per } },
-                () => setOverlayBtn(newVal)
-              );
-            });
+            chrome.storage.local.get(
+              { settings: {}, tracked: [] },
+              ({ settings, tracked }) => {
+                const per = { ...(settings.overlayPerDomain || {}) };
+                const newVal = !per[domain];
+                per[domain] = newVal;
+                chrome.storage.local.set(
+                  { settings: { ...settings, overlayPerDomain: per } },
+                  () => {
+                    setOverlayBtn(newVal);
+                    // Reflect change in global button: on only if all tracked are on
+                    if (overlayGlobalBtn) {
+                      const allOn =
+                        tracked.length > 0 && tracked.every((d) => per[d]);
+                      overlayGlobalBtn.classList.toggle("on", allOn);
+                      overlayGlobalBtn.setAttribute(
+                        "aria-pressed",
+                        allOn ? "true" : "false"
+                      );
+                    }
+                  }
+                );
+              }
+            );
           });
 
           // Remove button

@@ -84,12 +84,12 @@
 }
 
 #overlayGlobalBtn.overlayBtn::before {
-  content: "◉"; /* simple icon */
+  content: "⊘"; /* off icon: circle with slash */
   line-height: 1;
 }
 
 #overlayGlobalBtn.overlayBtn.on::before {
-  content: "◎";
+  content: "◉"; /* on icon: stylized filled circle */
 }
 
 /* list styling */
@@ -210,7 +210,7 @@
 }
 
 .overlayToggleBtn::before {
-  content: "◉";
+  content: "⊘"; /* off */
 }
 
 .overlayToggleBtn.on {
@@ -220,7 +220,7 @@
 }
 
 .overlayToggleBtn.on::before {
-  content: "◎";
+  content: "◉"; /* on */
 }
 
 /* remove-button - updated to be a red circle */
