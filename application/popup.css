@@ -1,188 +1,268 @@
 /* container */
 .container {
-    width: 350px;
-    overflow: hidden;
-    padding: 12px;
-    font-family: Arial, sans-serif;
-    box-sizing: border-box;
-    overflow: hidden;
-    /* Prevent scrollbar from affecting layout */
+  width: 400px;
+  overflow: visible;
+  padding: 12px;
+  font-family: Arial, sans-serif;
+  box-sizing: border-box;
+  /* Prevent scrollbar from affecting layout */
 }
 
 /* header with title + add button */
 .header {
-    display: flex;
-    flex-direction: column;
-    /* Stack title and subtitle vertically */
-    align-items: flex-start;
-    /* Align title and subtitle to the left */
-    margin-bottom: 8px;
-    position: relative;
-    /* Allow positioning of the add button */
+  display: flex;
+  flex-direction: column;
+  /* Stack title and subtitle vertically */
+  align-items: flex-start;
+  /* Align title and subtitle to the left */
+  margin-bottom: 8px;
+  position: relative;
+  /* Allow positioning of the add button */
 }
 
 .header h1 {
-    font-size: 14px;
-    margin: 0;
-    color: #333;
+  font-size: 14px;
+  margin: 0;
+  color: #333;
 }
 
 /* Subtitle styling */
 #subtitle {
-    font-size: 0.9em;
-    color: #666;
-    margin: 4px 0;
-    /* Minimal spacing above and below */
+  font-size: 0.9em;
+  color: #666;
+  margin: 4px 0;
+  /* Minimal spacing above and below */
 }
 
-/* Position the add button to the top-right corner */
+/* Position the add/overlay buttons to the top-right corner */
 #addBtn {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 24px;
-    height: 24px;
-    padding: 0px;
-    border: none;
-    border-radius: 50%;
-    background-color: #4CAF50;
-    color: #fff;
-    font-size: 16px;
-    line-height: 1;
-    cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    transition: background-color 0.2s;
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 24px;
+  height: 24px;
+  padding: 0px;
+  border: none;
+  border-radius: 50%;
+  background-color: #4caf50;
+  color: #fff;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.2s;
 }
 
 #addBtn:hover {
-    background-color: #45A049;
+  background-color: #45a049;
+}
+
+/* Global overlay circular toggle button */
+#overlayGlobalBtn.overlayBtn {
+  position: absolute;
+  top: 0;
+  right: 32px; /* to the left of the add button */
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid #ccc; /* off state border */
+  background-color: #fff; /* off state background */
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+  font-size: 14px;
+  color: #777; /* icon color off */
+}
+
+#overlayGlobalBtn.overlayBtn.on {
+  background-color: #e0e0e0; /* gray when on */
+  border-color: transparent;
+  color: #333; /* darker icon color */
+}
+
+#overlayGlobalBtn.overlayBtn::before {
+  content: "⊘"; /* off icon: circle with slash */
+  line-height: 1;
+}
+
+#overlayGlobalBtn.overlayBtn.on::before {
+  content: "◉"; /* on icon: stylized filled circle */
 }
 
 /* list styling */
 .site-list {
-    list-style: none;
-    overflow: hidden;
-    margin: 0;
-    padding: 0;
-    max-height: 300px;
-    overflow-y: auto;
-    scrollbar-width: thin;
-    /* For Firefox: makes the scrollbar thin */
-    scrollbar-color: #bbb transparent;
-    /* For Firefox: scrollbar color */
+  list-style: none;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  max-height: 300px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  /* For Firefox: makes the scrollbar thin */
+  scrollbar-color: #bbb transparent;
+  /* For Firefox: scrollbar color */
 }
 
 /* For WebKit browsers (Chrome, Edge, Safari) */
 .site-list::-webkit-scrollbar {
-    width: 6px;
-    /* Slim scrollbar width */
+  width: 6px;
+  /* Slim scrollbar width */
 }
 
 .site-list::-webkit-scrollbar-track {
-    background: transparent;
-    /* Transparent track */
+  background: transparent;
+  /* Transparent track */
 }
 
 .site-list::-webkit-scrollbar-thumb {
-    background-color: #bbb;
-    /* Scrollbar thumb color */
-    border-radius: 3px;
-    /* Rounded edges for the scrollbar thumb */
+  background-color: #bbb;
+  /* Scrollbar thumb color */
+  border-radius: 3px;
+  /* Rounded edges for the scrollbar thumb */
 }
 
 .site-list::-webkit-scrollbar-thumb:hover {
-    background-color: #999;
-    /* Darker color on hover */
+  background-color: #999;
+  /* Darker color on hover */
 }
 
 .site-list li {
-    display: flex;
-    align-items: center;
-    background: #FAFAFA;
-    border: 1px solid #E0E0E0;
-    border-radius: 4px;
-    padding: 8px;
-    margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #e6e6e6;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 /* favicon */
 .favicon {
-    width: 20px;
-    height: 20px;
-    border-radius: 3px;
-    flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  flex-shrink: 0;
 }
 
 /* text + stats */
 .info {
-    display: flex;
-    flex-direction: column;
-    margin-left: 10px;
-    flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin-left: 10px;
+  flex: 1;
 }
 
 .domain {
-    font-size: 14px;
-    color: #222;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  font-size: 14px;
+  color: #222;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .stats {
-    font-size: 12px;
-    color: #555;
-    margin-top: 4px;
-    white-space: nowrap;
+  font-size: 12px;
+  color: #555;
+  margin-top: 4px;
+  white-space: nowrap;
 }
 
 .secondary-stats {
-    font-size: 0.85em;
-    color: #777;
-    margin-top: 4px;
-    display: block;
+  font-size: 0.85em;
+  color: #777;
+  margin-top: 4px;
+  display: block;
+}
+
+.right-side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+.sparkline {
+  width: 64px;
+  height: 24px;
+}
+
+/* Per-domain overlay toggle button (small circular) */
+.overlayToggleBtn {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid #ccc; /* off */
+  background-color: #fff; /* off */
+  color: #777;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.overlayToggleBtn::before {
+  content: "⊘"; /* off */
+}
+
+.overlayToggleBtn.on {
+  background-color: #e0e0e0; /* on */
+  border-color: transparent;
+  color: #333;
+}
+
+.overlayToggleBtn.on::before {
+  content: "◉"; /* on */
 }
 
 /* remove-button - updated to be a red circle */
 .removeBtn {
-    width: 18px;
-    height: 18px;
-    border: none;
-    border-radius: 50%;
-    background-color: #ff4d4d;
-    /* bright red */
-    color: white;
-    font-size: 12px;
-    margin-left: 8px;
-    cursor: pointer;
-    line-height: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-    transition: background-color 0.2s;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background-color: #ff4d4d;
+  /* bright red */
+  color: white;
+  font-size: 12px;
+  margin-left: 0;
+  cursor: pointer;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.2s;
 }
 
 .removeBtn:hover {
-    background-color: #ff1a1a;
-    /* darker red on hover */
+  background-color: #ff1a1a;
+  /* darker red on hover */
 }
 
 /* Adjust subtitle styling */
 #subtitle {
-    font-size: 0.9em;
-    color: #666;
-    margin: 4px 0 0;
-    /* Add spacing below the header */
-    text-align: left;
-    /* Align subtitle with the header */
+  font-size: 0.9em;
+  color: #666;
+  margin: 4px 0 0;
+  /* Add spacing below the header */
+  text-align: left;
+  /* Align subtitle with the header */
 }
 
 /* Total stats styling */
 #totalStats {
-    font-size: 0.9em;
-    color: #333;
-    margin: 2px 0 6px;
-    /* Minimal spacing above, smaller spacing below */
-    text-align: left;
+  font-size: 0.9em;
+  color: #333;
+  margin: 2px 0 6px;
+  /* Minimal spacing above, smaller spacing below */
+  text-align: left;
 }
