@@ -113,27 +113,74 @@ function short(ms) {
   return m + "m";
 }
 
-function drawSparkline(canvas, points) {
+function drawSparkline(canvas, rawPoints) {
   if (!canvas || !canvas.getContext) return;
   const ctx = canvas.getContext("2d");
   const w = canvas.width,
     h = canvas.height;
+
   ctx.clearRect(0, 0, w, h);
-  if (!points || points.length === 0) return;
+  if (!rawPoints || rawPoints.length === 0) return;
+
+  // Visual constants
+  const pad = 2; // top/bottom/right padding (right-aligned)
+  const minSpacing = 2; // px between points (min)
+  const maxSpacing = 5; // px between points (max)
+  const fadeWidth = 14; // px fade to white from the left edge
+  const stroke = "#4CAF50";
+
+  // Filter to numeric values only
+  let points = rawPoints.filter((v) => typeof v === "number" && !isNaN(v));
+  if (points.length === 0) return;
+
+  // Capacity based on minimum spacing (right-aligned to always show the most recent)
+  const innerWidth = Math.max(0, w - 2 * pad);
+  const capacity = Math.max(1, Math.floor(innerWidth / minSpacing) + 1);
+  if (points.length > capacity) {
+    points = points.slice(-capacity);
+  }
+
+  const count = points.length;
+
+  // Compute spacing, then right-align the series so the latest value is at the right
+  // If too few points, spacing grows but is capped to avoid overly stretched lines
+  let spacing = count > 1 ? Math.floor(innerWidth / (count - 1)) : innerWidth;
+  spacing = Math.min(maxSpacing, Math.max(minSpacing, spacing));
+  const xRight = w - pad;
+
+  // Y mapping
   const min = Math.min(...points);
   const max = Math.max(...points);
-  const pad = 2;
   const range = Math.max(1, max - min);
-  ctx.strokeStyle = "#4CAF50";
+
+  // Draw the line (or a dot when only one point)
+  ctx.strokeStyle = stroke;
   ctx.lineWidth = 1;
-  ctx.beginPath();
-  points.forEach((v, i) => {
-    const x = pad + (i * (w - 2 * pad)) / (points.length - 1 || 1);
-    const y = h - pad - ((v - min) * (h - 2 * pad)) / range;
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  });
-  ctx.stroke();
+  if (count === 1) {
+    const y = h - pad - ((points[0] - min) * (h - 2 * pad)) / range;
+    const x = xRight; // single point at the right edge
+    ctx.beginPath();
+    ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+    ctx.fillStyle = stroke;
+    ctx.fill();
+  } else {
+    ctx.beginPath();
+    for (let i = 0; i < count; i++) {
+      const v = points[i];
+      const x = xRight - spacing * (count - 1 - i);
+      const y = h - pad - ((v - min) * (h - 2 * pad)) / range;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  // Left-side fade to white (overlay a gradient from opaque white to transparent)
+  const grad = ctx.createLinearGradient(0, 0, fadeWidth, 0);
+  grad.addColorStop(0, "rgba(255,255,255,1)");
+  grad.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, fadeWidth, h);
 }
 
 // Function to create and append a favicon image element
@@ -451,35 +498,15 @@ function updateStats() {
         const last = recentLoads[domain] ?? s.last;
         secondStatsElement.textContent = `Last ${short(last)}`;
 
-        // 7-day sparkline of daily average
+        // Sparkline of the last X loads (right-aligned, dynamic 2–5px spacing)
         const li = siteList.querySelector(`li[data-domain="${domain}"]`);
         const spark = li ? li.querySelector("canvas.sparkline") : null;
         if (spark) {
-          const dayMs = 24 * 60 * 60 * 1000;
-          const today = new Date();
-          const dayStart = new Date(
-            today.getFullYear(),
-            today.getMonth(),
-            today.getDate()
-          ).getTime();
-          const points = [];
-          for (let i = 6; i >= 0; i--) {
-            const start = dayStart - i * dayMs;
-            const end = start + dayMs;
-            const dayLoads = logs
-              .filter(
-                (r) =>
-                  r.domain === domain &&
-                  r.timestamp >= start &&
-                  r.timestamp < end
-              )
-              .map((r) => r.loadTime);
-            const avg = dayLoads.length
-              ? dayLoads.reduce((a, b) => a + b, 0) / dayLoads.length
-              : 0;
-            points.push(avg);
-          }
-          drawSparkline(spark, points);
+          const lastLoads = logs
+            .filter((r) => r.domain === domain)
+            .map((r) => r.loadTime)
+            .filter((v) => typeof v === "number" && !isNaN(v));
+          drawSparkline(spark, lastLoads);
         }
       });
     }
